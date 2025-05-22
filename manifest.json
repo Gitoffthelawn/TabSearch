@@ -18,6 +18,11 @@
       "128": "images/search128.png"
     }
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "TabSearch@irvinm.addons.mozilla.org"
+    }
+  },
   "commands": {
     "_execute_action": {
       "suggested_key": {
