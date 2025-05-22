@@ -5,9 +5,57 @@ function searchAudioTabs() {
   if (!browser || !browser.tabs) return;
   browser.tabs.query({audible: true}).then((audibleTabs) => {
     if (audibleTabs.length === 0) {
-      alert('No tabs are currently playing audio.');
+      showNoAudioTabsMessage();
       return;
     }
+// Show a custom message with the addon icon when no audio tabs are found
+function showNoAudioTabsMessage() {
+  // Create overlay
+  let overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = 0;
+  overlay.style.left = 0;
+  overlay.style.width = '100vw';
+  overlay.style.height = '100vh';
+  overlay.style.background = 'rgba(255,255,255,0.92)';
+  overlay.style.display = 'flex';
+  overlay.style.flexDirection = 'column';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = 9999;
+  overlay.style.textAlign = 'center';
+  overlay.style.fontFamily = 'inherit';
+
+  // Addon icon
+  let icon = document.createElement('img');
+  icon.src = 'images/search64.png';
+  icon.alt = 'TabSearch';
+  icon.style.width = '48px';
+  icon.style.height = '48px';
+  icon.style.marginBottom = '18px';
+
+  // Message
+  let msg = document.createElement('div');
+  msg.textContent = 'No tabs are currently playing audio.';
+  msg.style.fontSize = '18px';
+  msg.style.color = '#2366d1';
+  msg.style.marginBottom = '12px';
+
+  // Dismiss button
+  let btn = document.createElement('button');
+  btn.textContent = 'OK';
+  btn.className = 'primary-btn';
+  btn.style.fontSize = '16px';
+  btn.style.padding = '8px 24px';
+  btn.onclick = function() {
+    overlay.remove();
+  };
+
+  overlay.appendChild(icon);
+  overlay.appendChild(msg);
+  overlay.appendChild(btn);
+  document.body.appendChild(overlay);
+}
     if (audibleTabs.length === 1) {
       // Only one tab playing audio: switch directly
       browser.tabs.update(audibleTabs[0].id, {active: true});
