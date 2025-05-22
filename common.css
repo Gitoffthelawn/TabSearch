@@ -18,14 +18,14 @@
   cursor: pointer;
 }
 .option-group {
-  border: none;
+  border: 2px solid #2366d1;
+  border-radius: 8px;
   margin: 0 0 12px 0;
-  padding: 0;
+  background: #f7faff;
 }
 .option-group legend {
   font-weight: bold;
   color: #2366d1;
-  margin-bottom: 4px;
   font-size: 18px;
 }
 .flex-label {
