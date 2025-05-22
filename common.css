@@ -1,3 +1,19 @@
+.icon-btn#audio-search-btn {
+  margin-left: 8px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn#audio-search-btn:hover, .icon-btn#audio-search-btn:focus {
+  background: #eaf2fb;
+}
 /* Ensure one search type option per row */
 .option-list {
   margin-bottom: 4px;
@@ -5,6 +21,7 @@
 /* Modernized popup styles */
 .search-bar {
   display: flex;
+  align-items: center;
   gap: 6px;
   margin-bottom: 12px;
 }
