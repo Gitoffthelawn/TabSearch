@@ -8,6 +8,22 @@
   gap: 6px;
   margin-bottom: 12px;
 }
+
+/* Style for the search term input box */
+#search {
+  border: 2px solid #2366d1;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+  background: #f7faff;
+  color: #1a2a3a;
+}
+#search:focus {
+  border-color: #174a99;
+  background: #eaf2fb;
+}
 .primary-btn {
   background: #2366d1;
   color: #fff;
