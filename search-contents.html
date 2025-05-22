@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tab Search - Content Search Info</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <h1>Search Contents of Loaded Tabs</h1>
+  <div class="info-box">
+    <p>
+      <strong>How it works:</strong>
+      <ul class="section-list">
+        <li>When you enable "Search contents of loaded tabs", the extension will search the visible text inside each open tab for your search term. Only tabs that contain the term will remain visible; others will be hidden.</li>
+      </ul>
+    </p>
+    <p>
+      <strong>Minimum Search Length:</strong>
+      <ul class="section-list">
+        <li>For performance and accuracy, content search requires a minimum of <b>3 characters</b> in your search term. If you enter fewer than 3 characters and only content search is enabled, no tabs will be hidden or filtered.</li>
+      </ul>
+    </p>
+    <p>
+      <strong>Notes:</strong>
+      <ul class="section-list">
+        <li>Content search only works on regular web pages (not special pages like about:blank or browser settings).</li>
+        <li>Tabs that are unloaded (discarded) cannot be searched until they are loaded.</li>
+        <li>The search is case-insensitive.</li>
+      </ul>
+    </p>
+  </div>
+  <p><button id="close-btn" class="close-btn">Close</button></p>
+  <script src="search-contents.js"></script>
+</body>
+</html>

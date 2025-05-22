@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tab Search & Hide</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <form id="search-form" autocomplete="off">
+    <div class="search-bar">
+      <input id="search" type="text" placeholder="Search term ...">
+      <button id="search-btn" type="submit" class="primary-btn">Search</button>
+    </div>
+    <fieldset class="option-group">
+      <legend>Search Types</legend>
+      <div class="option-list">
+        <label><input type="checkbox" id="search-urls" checked> Search URLs</label>
+      </div>
+      <div class="option-list">
+        <label><input type="checkbox" id="search-titles" checked> Search tab titles</label>
+      </div>
+      <div class="option-list">
+        <label class="flex-label">
+          <input type="checkbox" id="search-contents"> Search contents of loaded tabs
+          <button id="search-contents-info-btn" type="button" class="icon-btn" title="Learn more about content search">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9" cy="9" r="8" fill="#2366d1" stroke="#2366d1" stroke-width="2"/>
+              <text x="9" y="14" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="white" font-weight="bold">i</text>
+            </svg>
+          </button>
+        </label>
+      </div>
+    </fieldset>
+    <fieldset class="option-group">
+      <legend>Search Options</legend>
+      <div class="option-list">
+        <label><input type="checkbox" id="realtime-search" checked> Real-time search</label>
+      </div>
+      <div class="option-list">
+        <label class="flex-label">
+          <input type="checkbox" id="disable-empty-tab"> Disable initial hide action
+          <button id="privacy-info-btn" type="button" class="icon-btn" title="Learn more about tab hiding privacy">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9" cy="9" r="8" fill="#2366d1" stroke="#2366d1" stroke-width="2"/>
+              <text x="9" y="14" text-anchor="middle" font-size="12" font-family="Arial, sans-serif" fill="white" font-weight="bold">i</text>
+            </svg>
+          </button>
+        </label>
+      </div>
+    </fieldset>
+  </form>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tab Hiding Permission & Privacy</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <h1>Tab Hiding Permission & Privacy</h1>
+  <div class="info-box">
+    <h2 class="important-header">IMPORTANT</h2>
+    <ul class="section-list">
+      <li>This extension uses the <code>tabs.hide()</code> API to hide tabs.</li>
+      <li>Firefox requires explicit user permission for this feature.</li>
+    </ul>
+    <p><b>On first use of the addon</b></p>
+    <ul class="section-list">
+      <li>Per Mozilla: "The first time an extension hides a tab, the browser will tell the user that the tab is being hidden, show them how they can access the hidden tab, and give them the option of disabling the extension instead."</li>
+      <li>The extension will briefly hide and show the last tab in your current window.</li>
+      <li>This action triggers Firefox to display a <b>privacy dialog</b> asking you to allow or deny tab hiding with this extension.</li>
+      <li>This is only a workaround until the bug referenced in <b>Note #1</b> is fixed.</li>
+    </ul>
+    <p><b>What should you do?</b></p>
+    <ul class="section-list">
+      <li>To use tab hiding with this extension, click <b>Keep Tabs Hidden</b> in the dialog.</li>
+      <li>To disable this feature, click <b>Disable Extension</b>.</li>
+    </ul>
+    <p>
+      <b>Note #1:</b> If you do not accept the permission, the dialog will appear each time the extension tries to hide a tab and will cause some UI conflicts between the search dialog and the Firefox privacy dialog. Once you allow it, you can select the <b>"Disable initial hide action"</b> option in the extension settings to prevent this initialization step in the future.
+      <ul class="section-list">
+        <li>Reference: <a href="https://discourse.mozilla.org/t/initial-tabs-hide-warning-dialog/142979" target="_blank" rel="noopener noreferrer">My discussion on Mozilla's Discourse site</a></li>
+        <li>Bugzilla: <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1964491" target="_blank" rel="noopener noreferrer">Issue tracking this behavior</a></li>
+      </ul>
+    </p>
+    <p>
+      <b>Note #2:</b> This addon only uses hidden tabs when you are searching for tabs. Once you cancel the search (Pressing ESC key or clicking off of the dialog) or select the tab you want, all tabs are shown again with no tabs permanently hidden. Hidden tabs are only a temporary state while searching and should not affect your browsing experience.
+    </p>
+    <p>
+      <b>Note #3:</b> This addon does not currently track or detect if another extension is already hiding tabs using <code>tabs.hide()</code>. If you use multiple tab-hiding extensions at the same time, this may cause conflicts or unexpected behavior. This is a limitation that may be addressed in a future update.
+    </p>
+  </div>
+  <div>
+    <b>Learn more:</b><br>
+    <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/hide" target="_blank" rel="noopener noreferrer">
+      MDN Web Docs: tabs.hide()
+    </a>
+  </div>
+  <p><button id="close-btn" class="close-btn">Close</button></p>
+  <script src="privacy.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Search",
+  "version": "1.0",
+  "description": "Search tabs and hide non-matching ones.",
+  "permissions": ["tabs", "tabHide", "storage", "find"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/search16.png",
+      "24": "images/search24.png",
+      "32": "images/search32.png",
+      "64": "images/search64.png",
+      "128": "images/search128.png"
+    }
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F"
+      },
+      "description": "Open Tab Search Options"
+    }
+  }
+}
