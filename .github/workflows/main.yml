@@ -9,8 +9,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build .xpi package
         run: make
-      - name: List output files
-        run: ls -lh TabSearch.xpi
+      - name: List files inside TabSearch.xpi
+        run: unzip -l TabSearch.xpi
       - uses: actions/upload-artifact@v4
         with:
           name: TabSearch.xpi
