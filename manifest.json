@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tab Search",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Search tabs and hide non-matching ones.",
   "permissions": ["tabs", "tabHide", "storage", "find"],
   "host_permissions": ["<all_urls>"],
