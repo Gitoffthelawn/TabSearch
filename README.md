@@ -1,3 +1,72 @@
+![CI/CD](https://github.com/irvinm/TabSearch/workflows/CI/CD/badge.svg) ![Mozilla Add-on](https://img.shields.io/amo/users/TabSearch?style=flat-square) ![](https://img.shields.io/amo/v/TabSearch.svg?style=flat-square)
+
+
 # TabSearch
 
-<a href="https://www.flaticon.com/free-icons/search" title="search icons">Search icons created by Maxim Basinski Premium - Flaticon</a>
+
+## Features
+
+- Search open tabs by URL, title, or page content (text inside loaded tabs).
+- Hide all non-matching tabs for a focused search experience.
+- Hides and shows tabs across all browser windows for a comprehensive search.
+    - The active tab in each window always remains visible, as it cannot be hidden.
+- Real-time search (filter as you type) or manual search (on submit).
+- Audio tab search: quickly find and focus tabs playing audio.
+- Keyboard shortcut for quick access to the search dialog.
+    - Customizable keyboard shortcut via about:addons → gear → Manage Extension Shortcuts.
+- Option to disable the initial tab hiding action (once the privacy dialog is accepted).
+    - The addon hides and shows the last tab on startup to trigger Firefox’s permission prompt without interfering with the search dialog. Once permission is granted, you can disable this behavior. See the limitations section for more information and links.
+- Never hides pinned or active tabs.
+- Tab hiding is temporary: all tabs are restored when the search is cleared or the popup is closed.
+- Keyboard shortcut to open the search dialog.
+
+
+## Limitations
+
+- Content search only works on loaded, regular web pages (not special pages like about:blank or browser settings).
+    - Tabs that are unloaded (discarded) cannot be searched until loaded.
+- Search is case-insensitive and uses simple substring matching (not true fuzzy search).
+- Hiding or unhiding a large number of tabs may be slow, especially with many open tabs.
+- Uses the `tabs.hide()` API, which requires explicit user permission and may show a privacy dialog on first use.
+    - [Mozilla Discourse Discussion](https://discourse.mozilla.org/t/initial-tabs-hide-warning-dialog/142979/4)
+    - [Mozilla Bugzilla Report](https://bugzilla.mozilla.org/show_bug.cgi?id=1964491)
+- Opening the search dialog should select the search input field by default, but a Firefox bug may require you to click the input field manually.
+    - [Mozilla Discourse Discussion](https://discourse.mozilla.org/t/use-of-autofocus-in-popup-html-not-consistent/143017/2)
+    - [Mozilla Bugzilla Report](https://bugzilla.mozilla.org/show_bug.cgi?id=1877410)
+- Tab content search requires at least 3 characters in the search term.
+
+
+## Known Issues
+
+- Initial use will trigger a Firefox privacy dialog about tab hiding (expected behavior).
+    - If permission is not granted, the dialog may reappear and cause UI conflicts.
+- No fuzzy matching or typo tolerance (feature possibly planned).
+- Performance may degrade with very large tab sets.
+- Real-time searching may be slow on older or slower machines.
+- Does not detect if another extension is also using the `tabs.hide()` API (may cause conflicts).
+- Some features (like content search) may not work on all tab types.
+
+
+## Addon Icon
+
+[Search icons created by Maxim Basinski Premium - Flaticon](https://www.flaticon.com/free-icons/search)
+
+
+## Changelog
+
+### v0.2.0
+- Updated styling for the search dialog.
+- Added support for searching tabs playing audio:
+    - 0 matches: Shows a custom dialog indicating no tabs were found.
+    - 1 match: Switches directly to that tab.
+    - 2+ matches: Hides all non-audio tabs.
+
+### v0.1.0
+- Initial release support for:
+    - Searching tab URL
+    - Searching tab title
+    - Searching tab content (text inside loaded tabs)
+    - Option to initially hide a tab in order to get Firefox to ask for explicit permission
+    - Option for real-time search (filter as you type) or manual search (on submit)
+    - Keyboard short-cut support to bring up search dialog
+    - Support to change key assignment via standard about:addons → gear → Manage Extension Shortcuts
