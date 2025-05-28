@@ -46,10 +46,34 @@ if (
   });
 }
 
+
+
 let lastHiddenTabIds = [];
+let progressInterval = null;
+let tabsToProcess = 0;
+let searchInProgress = false;
+
+function updateBadge(count) {
+  browser.action.setBadgeText({ text: count > 0 ? String(count) : '' });
+  browser.action.setBadgeBackgroundColor({ color: '#2366d1' });
+}
+
+function startProgressIndicator(getCountFn) {
+  if (progressInterval) clearInterval(progressInterval);
+  progressInterval = setInterval(async () => {
+    const count = await getCountFn();
+    updateBadge(count);
+    if (count === 0) {
+      clearInterval(progressInterval);
+      progressInterval = null;
+      updateBadge(0);
+    }
+  }, 500); // Update 2 times a second
+}
 
 browser.runtime.onMessage.addListener(async (msg, sender) => {
   if (msg.action === 'search-tabs') {
+    searchInProgress = true;
     const term = msg.term.toLowerCase();
     const searchUrls = msg.searchUrls;
     const searchTitles = msg.searchTitles;
@@ -61,11 +85,24 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     // Also, if content search is the only enabled search and term is less than 3 chars, unhide all and return
     const onlyContentSearch = searchContents && !searchTitles && !searchUrls;
     if (!term || (onlyContentSearch && term.length < 3)) {
+      searchInProgress = false;
       const hiddenTabIds = tabs.filter(tab => tab.hidden).map(tab => tab.id);
       if (hiddenTabIds.length > 0) {
+        // Start progress indicator for unhiding
+        updateBadge(hiddenTabIds.length);
+        startProgressIndicator(async () => {
+          const tabsNow = await browser.tabs.query({});
+          return tabsNow.filter(tab => tab.hidden).length;
+        });
         try {
           await browser.tabs.show(hiddenTabIds);
         } catch (e) {}
+      } else {
+        updateBadge(0);
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
       }
       lastHiddenTabIds = [];
       return;
@@ -97,6 +134,31 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
         }
       }
     }
+    // Progress indicator: set badge to number of tabs to hide or unhide
+    let totalToProcess = toHide.length + toShow.length;
+    updateBadge(totalToProcess);
+    if (totalToProcess > 0) {
+      startProgressIndicator(async () => {
+        const allTabs = await browser.tabs.query({});
+        // Count tabs that are still not hidden but should be hidden, and tabs that are still hidden but should be shown
+        const stillToHide = toHide.filter(id => {
+          const t = allTabs.find(tab => tab.id === id);
+          return t && !t.hidden;
+        }).length;
+        const stillToShow = toShow.filter(id => {
+          const t = allTabs.find(tab => tab.id === id);
+          return t && t.hidden;
+        }).length;
+        return stillToHide + stillToShow;
+      });
+    } else {
+      updateBadge(0);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+    }
+
     // Hide tabs that don't match
     if (toHide.length > 0) {
       try {
@@ -111,27 +173,71 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     }
     // Track all currently hidden tabs by this addon
     lastHiddenTabIds = Array.from(new Set([...(lastHiddenTabIds || []), ...toHide]));
+    // If no tabs are hidden, consider search done
+    if (toHide.length === 0 && toShow.length === 0) {
+      searchInProgress = false;
+    }
   }
   // Listen for popup closed event
   if (msg.action === 'popup-closed') {
+    searchInProgress = false;
     // Always try to show all hidden tabs, even if lastHiddenTabIds is empty
     try {
       const allTabs = await browser.tabs.query({});
       const hiddenTabIds = allTabs.filter(tab => tab.hidden).map(tab => tab.id);
       if (hiddenTabIds.length > 0) {
+        // Start progress indicator for unhiding
+        updateBadge(hiddenTabIds.length);
+        startProgressIndicator(async () => {
+          const tabsNow = await browser.tabs.query({});
+          return tabsNow.filter(tab => tab.hidden).length;
+        });
         await browser.tabs.show(hiddenTabIds);
+      } else {
+        updateBadge(0);
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      updateBadge(0);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+    }
     lastHiddenTabIds = [];
   }
 });
 
 // Listen for tab activation to restore hidden tabs
 browser.tabs.onActivated.addListener(async (activeInfo) => {
-  if (lastHiddenTabIds.length > 0) {
+  if (!searchInProgress && lastHiddenTabIds.length > 0) {
     try {
-      await browser.tabs.show(lastHiddenTabIds);
-    } catch (e) {}
+      const allTabs = await browser.tabs.query({});
+      const hiddenTabIds = allTabs.filter(tab => tab.hidden).map(tab => tab.id);
+      if (hiddenTabIds.length > 0) {
+        updateBadge(hiddenTabIds.length);
+        startProgressIndicator(async () => {
+          const tabsNow = await browser.tabs.query({});
+          return tabsNow.filter(tab => tab.hidden).length;
+        });
+        await browser.tabs.show(hiddenTabIds);
+      } else {
+        updateBadge(0);
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
+      }
+    } catch (e) {
+      updateBadge(0);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+    }
     lastHiddenTabIds = [];
   }
 });
