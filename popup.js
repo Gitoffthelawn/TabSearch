@@ -145,12 +145,23 @@ function updateSearchButtonState() {
   }
 }
 
+
+// Prevent form submit from reloading popup or resetting options
+document.getElementById('search-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  doSearch();
+});
+
 document.getElementById('search').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
+    e.preventDefault();
     doSearch();
   }
 });
-document.getElementById('search-btn').addEventListener('click', doSearch);
+document.getElementById('search-btn').addEventListener('click', function(e) {
+  e.preventDefault();
+  doSearch();
+});
 
 
 // Attach all DOMContentLoaded logic in a single listener
