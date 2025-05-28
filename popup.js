@@ -138,11 +138,8 @@ function updateSearchButtonState() {
   const contentsChecked = document.getElementById('search-contents').checked;
   const realtimeChecked = document.getElementById('realtime-search').checked;
   const enableSearch = urlsChecked || titlesChecked || contentsChecked;
-  if (realtimeChecked) {
-    searchBtn.disabled = true;
-  } else {
-    searchBtn.disabled = !enableSearch;
-  }
+  // Only exception: when real-time search is enabled, disable the search button
+  searchBtn.disabled = !!realtimeChecked;
   if (searchInput) {
     searchInput.disabled = !enableSearch;
   }
