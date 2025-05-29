@@ -22,6 +22,7 @@
 - Tab hiding is temporary: all tabs are restored when the search is cleared or the popup is closed.
 - Keyboard shortcut to open the search dialog.
 - Shows the number of remaining tabs to be hidden/shown on the addon icon
+- Option to multi-select matching tabs after search is complete
 
 
 ## Limitations
