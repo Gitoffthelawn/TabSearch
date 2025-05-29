@@ -3,7 +3,9 @@
 
 # TabSearch
 
-
+## Inspiration
+- As a power user of Tree Style Tabs (TST) and a user usually with large sessions with many tabs, I wanted to create a unique experience primarily focused on vertical tab solutions utilitzing Firefox's native ability to hide tabs.  When doing searches, tabs that do not meet your search criteria will be hidden until you find the tab you want or cancel the search.  Tabs are only hidden temporarily and never permanently.  This addon works independantly of vertical tab solutions and will work for everyone.
+  
 ## Features
 
 - Search open tabs by URL, title, or page content (text inside loaded tabs).
@@ -19,6 +21,7 @@
 - Never hides pinned or active tabs.
 - Tab hiding is temporary: all tabs are restored when the search is cleared or the popup is closed.
 - Keyboard shortcut to open the search dialog.
+- Shows the number of remaining tabs to be hidden/shown on the addon icon
 
 
 ## Limitations
@@ -53,6 +56,12 @@
 
 
 ## Changelog
+
+### v0.3.0
+- Added support to show the number of tabs still to be processed (hidden or shown) to the addon icon counter
+- Reduced the amount of white-space near the borders of the search popup
+- Disabled the search button when "real-time searches" are enabled
+- Cleaned up some logic around options to avoid searches from being cleared mid-search
 
 ### v0.2.0
 - Updated styling for the search dialog.
