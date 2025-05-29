@@ -126,7 +126,7 @@ function saveOptions(options) {
 
 function loadOptions(callback) {
   if (browser && browser.storage && browser.storage.local) {
-    browser.storage.local.get(["searchUrls", "searchTitles", "searchContents", "realtimeSearch", "disableEmptyTab"]).then(callback);
+    browser.storage.local.get(["searchUrls", "searchTitles", "searchContents", "realtimeSearch", "disableEmptyTab", "selectMatchingTabs"]).then(callback);
   }
 }
 
@@ -190,17 +190,20 @@ window.addEventListener('DOMContentLoaded', function() {
     let titlesChecked = allUndefined ? true : (typeof items.searchTitles === 'undefined' ? true : !!items.searchTitles);
     let contentsChecked = allUndefined ? true : (typeof items.searchContents === 'undefined' ? true : !!items.searchContents); // default true
     let realtimeChecked = allUndefined ? true : (typeof items.realtimeSearch === 'undefined' ? true : !!items.realtimeSearch);
+
+    let selectMatchingTabsChecked = allUndefined ? false : (typeof items.selectMatchingTabs === 'undefined' ? false : !!items.selectMatchingTabs);
     let disableEmptyTabChecked = allUndefined ? false : (typeof items.disableEmptyTab === 'undefined' ? false : !!items.disableEmptyTab);
 
     document.getElementById('search-urls').checked = urlsChecked;
     document.getElementById('search-titles').checked = titlesChecked;
     document.getElementById('search-contents').checked = contentsChecked;
     document.getElementById('realtime-search').checked = realtimeChecked;
+    document.getElementById('select-matching-tabs').checked = selectMatchingTabsChecked;
     document.getElementById('disable-empty-tab').checked = disableEmptyTabChecked;
 
     // If all were undefined, save the defaults so future loads are correct
     if (allUndefined) {
-      saveOptions({ searchUrls: true, searchTitles: true, searchContents: true, realtimeSearch: true, disableEmptyTab: false });
+      saveOptions({ searchUrls: true, searchTitles: true, searchContents: true, realtimeSearch: true, disableEmptyTab: false, selectMatchingTabs: false });
     }
     updateSearchButtonState();
 
@@ -286,9 +289,13 @@ window.addEventListener('DOMContentLoaded', function() {
       searchTitles: document.getElementById('search-titles').checked,
       searchContents: document.getElementById('search-contents').checked,
       realtimeSearch: document.getElementById('realtime-search').checked,
-      disableEmptyTab: document.getElementById('disable-empty-tab').checked
+      disableEmptyTab: document.getElementById('disable-empty-tab').checked,
+      selectMatchingTabs: document.getElementById('select-matching-tabs').checked
     });
   }
+  document.getElementById('select-matching-tabs').addEventListener('change', function() {
+    saveAllOptions();
+  });
   document.getElementById('search-urls').addEventListener('change', function(e) {
     const prev = document.activeElement;
     saveAllOptions();

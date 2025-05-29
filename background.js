@@ -52,6 +52,7 @@ let lastHiddenTabIds = [];
 let progressInterval = null;
 let tabsToProcess = 0;
 let searchInProgress = false;
+let lastMatchedTabIds = [];
 
 function updateBadge(count) {
   browser.action.setBadgeText({ text: count > 0 ? String(count) : '' });
@@ -107,6 +108,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       lastHiddenTabIds = [];
       return;
     }
+    let matchedTabIds = [];
     for (const tab of tabs) {
       const title = (tab.title || '').toLowerCase();
       const url = (tab.url || '').toLowerCase();
@@ -127,6 +129,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       }
       // Only call if either searchTitles or searchUrls is enabled OR if searchContents is enabled and the term is >= 3 chars
       if (searchTitles || searchUrls || (searchContents && term.length >= 3)) {
+        if (matches) matchedTabIds.push(tab.id);
         if (!matches && !tab.active && !tab.pinned) {
           if (!tab.hidden) toHide.push(tab.id);
         } else {
@@ -134,6 +137,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
         }
       }
     }
+    lastMatchedTabIds = matchedTabIds;
     // Progress indicator: set badge to number of tabs to hide or unhide
     let totalToProcess = toHide.length + toShow.length;
     updateBadge(totalToProcess);
@@ -205,6 +209,28 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       if (progressInterval) {
         clearInterval(progressInterval);
         progressInterval = null;
+      }
+    }
+    // Select all matching tabs if option is enabled
+    const items = await browser.storage.local.get(["selectMatchingTabs"]);
+    if (items.selectMatchingTabs && lastMatchedTabIds && lastMatchedTabIds.length > 0) {
+      // Find the active tab among the matched tabs
+      const allTabs = await browser.tabs.query({});
+      const matchedTabs = allTabs.filter(tab => lastMatchedTabIds.includes(tab.id));
+      let activeTab = matchedTabs.find(tab => tab.active);
+      if (!activeTab) {
+        // If the active tab is not in the matched set, pick the first matched tab as active
+        activeTab = matchedTabs[0];
+        if (activeTab) {
+          await browser.tabs.update(activeTab.id, { active: true });
+        }
+      }
+      // Highlight all matched tabs in their window
+      if (activeTab) {
+        const matchedTabIdsInWindow = matchedTabs.filter(tab => tab.windowId === activeTab.windowId).map(tab => tab.id);
+        if (matchedTabIdsInWindow.length > 1) {
+          await browser.tabs.highlight({ windowId: activeTab.windowId, tabs: matchedTabIdsInWindow.map(id => allTabs.findIndex(tab => tab.id === id)) });
+        }
       }
     }
     lastHiddenTabIds = [];
