@@ -57,6 +57,9 @@
 
 ## Changelog
 
+### v0.4.0
+- Added new option to multi-select matching tabs
+
 ### v0.3.0
 - Added support to show the number of tabs still to be processed (hidden or shown) to the addon icon counter
 - Reduced the amount of white-space near the borders of the search popup
