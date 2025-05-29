@@ -1,4 +1,4 @@
-![CI/CD](https://github.com/irvinm/TabSearch/workflows/CI/CD/badge.svg) ![Mozilla Add-on](https://img.shields.io/amo/users/TabSearch?style=flat-square) ![](https://img.shields.io/amo/v/Tab-Search.svg?style=flat-square)
+![CI/CD](https://github.com/irvinm/TabSearch/workflows/CI/CD/badge.svg) ![Mozilla Add-on](https://img.shields.io/amo/users/Tab-Search?style=flat-square) ![](https://img.shields.io/amo/v/Tab-Search.svg?style=flat-square)
 
 
 # TabSearch
