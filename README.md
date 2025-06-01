@@ -38,6 +38,7 @@
     - [Mozilla Discourse Discussion](https://discourse.mozilla.org/t/use-of-autofocus-in-popup-html-not-consistent/143017/2)
     - [Mozilla Bugzilla Report](https://bugzilla.mozilla.org/show_bug.cgi?id=1877410)
 - Tab content search requires at least 3 characters in the search term.
+- When "Select all matching tabs on close" is enabled with multiple open windows, there is a Firefox limitation that dragging tabs has to be done PER window.
 
 
 ## Known Issues
