@@ -4,7 +4,7 @@
 # TabSearch
 
 ## Inspiration
-- As a power user of Tree Style Tabs (TST) and a user usually with large sessions with many tabs, I wanted to create a unique experience primarily focused on vertical tab solutions utilitzing Firefox's native ability to hide tabs.  When doing searches, tabs that do not meet your search criteria will be hidden until you find the tab you want or cancel the search.  Tabs are only hidden temporarily and never permanently.  This addon works independantly of vertical tab solutions and will work for everyone.
+- As a power user of Tree Style Tab (TST) and a user usually with large sessions with many tabs, I wanted to create a unique experience primarily focused on vertical tab solutions utilitzing Firefox's native ability to hide tabs.  When doing searches, tabs that do not meet your search criteria will be hidden until you find the tab you want or cancel the search.  Tabs are only hidden temporarily and never permanently.  This addon works independantly of vertical tab solutions and will work for everyone.
   
 ## Features
 
