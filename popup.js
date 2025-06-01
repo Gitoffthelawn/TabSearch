@@ -89,6 +89,16 @@ document.addEventListener('focusin', (e) => {
 document.addEventListener('focusout', (e) => {
   setTimeout(() => {
     console.log('[TabSearch] focusout: document.activeElement:', document.activeElement, document.activeElement && document.activeElement.id);
+    // On focusout, request background to restore all tabs and multi-select if enabled
+    if (browser && browser.windows && browser.runtime && browser.runtime.sendMessage) {
+      browser.windows.getCurrent().then(win => {
+        browser.runtime.sendMessage({ action: 'popup-closed', windowId: win.id });
+      }).catch(e => {
+        browser.runtime.sendMessage({ action: 'popup-closed' });
+      });
+    } else {
+      browser.runtime.sendMessage({ action: 'popup-closed' });
+    }
   }, 0);
 });
 
