@@ -62,6 +62,53 @@ function addFlattenedState(tabId) {
   }).catch(err => {
     console.warn('[TabSearch][TST] Failed to add flattened state:', err);
   });
+
+/*
+  // Get tree structure and log tabs with 'subtree-collapsed' state
+  browser.runtime.sendMessage(TST_ID, {
+    type: 'get-tree-structure',
+    tabs: tabIds
+  }).then(tree => {
+    if (Array.isArray(tree)) {
+      console.log('[TabSearch][TST] get-tree-structure response:', tree);
+
+      const collapsedTabs = tree.filter(t => t.collapsed === true);
+      if (collapsedTabs.length > 0) {
+        // console.log('[TabSearch][TST] Tabs with subtree-collapsed state:', collapsedTabs.map(t => t.tab));
+        console.log('[TabSearch][TST] Tabs with subtree-collapsed state:', collapsedTabs);
+
+        // Expand the tree for these tabs
+        browser.runtime.sendMessage(TST_ID, {
+          type: 'expand-tree',
+          tabs: collapsedTabs.map(t => t.tab), // Use the tab IDs from the collapsed tabs
+          recursively: false
+        }).then(() => {
+          console.log('[TabSearch][TST] Expanded tree for tabs', collapsedTabs.map(t => t.tab));
+        }).catch(err => {
+          console.warn('[TabSearch][TST] Failed to expand tree for tabs:', err);
+        });
+      } else {
+        console.log('[TabSearch][TST] No tabs with subtree-collapsed state');
+      }
+    } else {
+      console.log('[TabSearch][TST] get-tree-structure response:', tree);
+    }
+  }).catch(err => {
+    console.warn('[TabSearch][TST] Failed to get tree structure:', err);
+  });
+*/
+  // Also expand the tree for these tabs recursively
+  /*
+  browser.runtime.sendMessage(TST_ID, {
+    type: 'expand-tree',
+    tabs: tabIds,
+    recursively: true
+  }).then(() => {
+    console.log('[TabSearch][TST] Expanded tree for tabs', tabIds);
+  }).catch(err => {
+    console.warn('[TabSearch][TST] Failed to expand tree for tabs:', err);
+  });
+  */
 }
 
 function removeFlattenedState(tabId) {
@@ -152,15 +199,42 @@ function startProgressIndicator(getCountFn) {
 }
 
 browser.runtime.onMessage.addListener(async (msg, sender) => {
+  // For restoring TST tree structure after search
+  let originalTSTTreeStructure = null;
   // Check if TST support is enabled
   const options = await browser.storage.local.get(['tstSupport']);
   const tstEnabled = options.tstSupport;
   console.log('Received message:', msg, 'from sender:', sender);
   if (msg.action === 'search-tabs') {
-    // If TST support is enabled, register with TST (only once per session)
+
     if (tstEnabled) {
+
+      // If TST support is enabled, register with TST (only once per session)
       registerWithTST();
+
+      // Take a snapshot of the TST tree structure before search (for restoration)
+      try {
+        originalTSTTreeStructure = await browser.runtime.sendMessage(TST_ID, {
+          type: 'get-tree-structure',
+          tabs: '*'
+        });
+        console.log('[TabSearch][TST] Snapshot of original tree structure:', originalTSTTreeStructure);
+      } catch (e) {
+        console.warn('[TabSearch][TST] Failed to get original tree structure:', e);
+      }
+
+      // Expand all trees for all tabs before search
+      browser.runtime.sendMessage(TST_ID, {
+        type: 'expand-tree',
+        tabs: '*', // Use '*' to expand all tabs
+        recursively: true
+      }).then(() => {
+        console.log('[TabSearch][TST] Expanded all trees');
+      }).catch(err => {
+        console.warn('[TabSearch][TST] Failed to expand trees: ', err);
+      });
     }
+
     searchInProgress = true;
     const term = msg.term.toLowerCase();
     const searchUrls = msg.searchUrls;
@@ -284,6 +358,19 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       const allTabs = await browser.tabs.query({});
       const allTabIds = allTabs.map(tab => tab.id);
       removeFlattenedState(allTabIds);
+      // Restore the original TST tree structure if we have a snapshot
+      if (originalTSTTreeStructure) {
+        try {
+          await browser.runtime.sendMessage(TST_ID, {
+            type: 'set-tree-structure',
+            structure: originalTSTTreeStructure
+          });
+          console.log('[TabSearch][TST] Restored original tree structure');
+        } catch (e) {
+          console.warn('[TabSearch][TST] Failed to restore original tree structure:', e);
+        }
+        originalTSTTreeStructure = null;
+      }
     }
     searchInProgress = false;
     // Always try to show all hidden tabs, even if lastHiddenTabIds is empty
