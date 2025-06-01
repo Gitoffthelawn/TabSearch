@@ -73,6 +73,7 @@ function startProgressIndicator(getCountFn) {
 }
 
 browser.runtime.onMessage.addListener(async (msg, sender) => {
+  console.log('Received message:', msg, 'from sender:', sender);
   if (msg.action === 'search-tabs') {
     searchInProgress = true;
     const term = msg.term.toLowerCase();
