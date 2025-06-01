@@ -214,23 +214,35 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     }
     // Select all matching tabs if option is enabled
     const items = await browser.storage.local.get(["selectMatchingTabs"]);
+    // Check if the feature is enabled and if there are any tabs from the last match
     if (items.selectMatchingTabs && lastMatchedTabIds && lastMatchedTabIds.length > 0) {
-      // Find the active tab among the matched tabs
-      const allTabs = await browser.tabs.query({});
-      const matchedTabs = allTabs.filter(tab => lastMatchedTabIds.includes(tab.id));
-      let activeTab = matchedTabs.find(tab => tab.active);
-      if (!activeTab) {
-        // If the active tab is not in the matched set, pick the first matched tab as active
-        activeTab = matchedTabs[0];
-        if (activeTab) {
-          await browser.tabs.update(activeTab.id, { active: true });
-        }
-      }
-      // Highlight all matched tabs in their window
-      if (activeTab) {
-        const matchedTabIdsInWindow = matchedTabs.filter(tab => tab.windowId === activeTab.windowId).map(tab => tab.id);
-        if (matchedTabIdsInWindow.length > 1) {
-          await browser.tabs.highlight({ windowId: activeTab.windowId, tabs: matchedTabIdsInWindow.map(id => allTabs.findIndex(tab => tab.id === id)) });
+      const allWindows = await browser.windows.getAll({ populate: false }); // Get all windows
+
+      for (const window of allWindows) {
+        const targetWindowId = window.id;
+        const allTabsInWindow = await browser.tabs.query({ windowId: targetWindowId });
+        const matchedTabsInWindow = allTabsInWindow.filter(tab => lastMatchedTabIds.includes(tab.id));
+
+        // Only proceed if this specific window has matched tabs
+        if (matchedTabsInWindow.length > 0) {
+          let activeTabInWindow = matchedTabsInWindow.find(tab => tab.active);
+
+          if (!activeTabInWindow) {
+            // If none of the matched tabs in this window are active,
+            // pick the first matched tab and make it active.
+            activeTabInWindow = matchedTabsInWindow[0];
+            // The activeTabInWindow is guaranteed to exist here because matchedTabsInWindow.length > 0
+            await browser.tabs.update(activeTabInWindow.id, { active: true });
+          }
+
+          // Highlight all matched tabs in this window if there's more than one.
+          // Highlighting a single tab is effectively just making it active, which is already handled.
+          if (matchedTabsInWindow.length > 1) {
+            await browser.tabs.highlight({
+              windowId: targetWindowId,
+              tabs: matchedTabsInWindow.map(tab => tab.index) // Use the tab's index property
+            });
+          }
         }
       }
     }
