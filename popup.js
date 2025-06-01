@@ -167,10 +167,18 @@ document.getElementById('search-btn').addEventListener('click', function(e) {
 // Attach all DOMContentLoaded logic in a single listener
 window.addEventListener('DOMContentLoaded', function() {
   let searchInput;
-  // Notify background when popup is closed
+  // Notify background when popup is closed, including windowId
   window.addEventListener('unload', function() {
-    console.log('[TabSearch] popup.html closed at', new Date().toISOString());
-    if (browser && browser.runtime && browser.runtime.sendMessage) {
+    if (browser && browser.windows && browser.runtime && browser.runtime.sendMessage) {
+      browser.windows.getCurrent().then(win => {
+        console.log('[TabSearch] popup.html closed at', new Date().toISOString(), 'windowId:', win.id);
+        browser.runtime.sendMessage({ action: 'popup-closed', windowId: win.id });
+      }).catch(e => {
+        console.log('[TabSearch] popup.html closed at', new Date().toISOString(), 'windowId: unknown');
+        browser.runtime.sendMessage({ action: 'popup-closed' });
+      });
+    } else {
+      console.log('[TabSearch] popup.html closed at', new Date().toISOString(), 'windowId: unavailable');
       browser.runtime.sendMessage({ action: 'popup-closed' });
     }
   });
