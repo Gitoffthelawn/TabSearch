@@ -136,7 +136,7 @@ function saveOptions(options) {
 
 function loadOptions(callback) {
   if (browser && browser.storage && browser.storage.local) {
-    browser.storage.local.get(["searchUrls", "searchTitles", "searchContents", "realtimeSearch", "disableEmptyTab", "selectMatchingTabs"]).then(callback);
+    browser.storage.local.get(["searchUrls", "searchTitles", "searchContents", "realtimeSearch", "disableEmptyTab", "selectMatchingTabs", "tstSupport"]).then(callback);
   }
 }
 
@@ -211,6 +211,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
     let selectMatchingTabsChecked = allUndefined ? false : (typeof items.selectMatchingTabs === 'undefined' ? false : !!items.selectMatchingTabs);
     let disableEmptyTabChecked = allUndefined ? false : (typeof items.disableEmptyTab === 'undefined' ? false : !!items.disableEmptyTab);
+    let tstSupportChecked = allUndefined ? false : (typeof items.tstSupport === 'undefined' ? false : !!items.tstSupport);
 
     document.getElementById('search-urls').checked = urlsChecked;
     document.getElementById('search-titles').checked = titlesChecked;
@@ -218,11 +219,24 @@ window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('realtime-search').checked = realtimeChecked;
     document.getElementById('select-matching-tabs').checked = selectMatchingTabsChecked;
     document.getElementById('disable-empty-tab').checked = disableEmptyTabChecked;
+    document.getElementById('tst-support').checked = tstSupportChecked;
 
     // If all were undefined, save the defaults so future loads are correct
     if (allUndefined) {
-      saveOptions({ searchUrls: true, searchTitles: true, searchContents: true, realtimeSearch: true, disableEmptyTab: false, selectMatchingTabs: false });
+      saveOptions({ searchUrls: true, searchTitles: true, searchContents: true, realtimeSearch: true, disableEmptyTab: false, selectMatchingTabs: false, tstSupport: false });
     }
+  document.getElementById('tst-support').addEventListener('change', function() {
+    const checked = this.checked;
+    browser.storage.local.set({ tstSupport: checked });
+    if (checked && window.TabSearchTST && window.TabSearchTST.registerWithTST) {
+      window.TabSearchTST.registerWithTST();
+    }
+  });
+// Load TST integration script
+const tstScript = document.createElement('script');
+tstScript.src = 'TST.js';
+tstScript.onload = function() { console.log('[TabSearch] TST.js loaded'); };
+document.head.appendChild(tstScript);
     updateSearchButtonState();
 
 

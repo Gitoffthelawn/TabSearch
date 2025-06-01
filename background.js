@@ -1,3 +1,82 @@
+// TST integration (directly included for MV3 background)
+const TST_ADDON_ID = 'TabSearch@irvinm.addons.mozilla.org';
+const TST_ID = 'treestyletab@piro.sakura.ne.jp';
+const TST_REGISTER_MESSAGE = {
+  type: 'register-self',
+  name: 'TabSearch',
+  icons: {
+    16: 'images/search16.png',
+    32: 'images/search32.png',
+    64: 'images/search64.png',
+    128: 'images/search128.png'
+  },
+  permissions: [
+    'tabs',
+    'activeTab',
+    'contextMenus'
+  ],
+  listeningTypes: [
+    'ready',
+    'kTSTAPI_NOTIFY_READY',
+    'kTSTAPI_NOTIFY_SHUTDOWN'
+  ],
+  // Register the custom tab state and its CSS
+  // See: https://github.com/piroor/treestyletab/wiki/API-for-other-addons#register-self
+  style: `
+    .tab.flattened:not(.pinned) {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+      --twisty-margin: 0 !important;
+      --tab-margin: 0 !important;
+      --tab-indent: 0 !important;
+    }
+    .tab.flattened:not(.pinned) .label,
+    .tab.flattened:not(.pinned) .twisty,
+    .tab.flattened:not(.pinned) .counter {
+      margin-left: 0 !important;
+      padding-left: 0 !important;
+    }
+  `,
+};
+
+function registerWithTST() {
+  if (!browser || !browser.runtime || !browser.runtime.sendMessage) return;
+  browser.runtime.sendMessage(TST_ID, TST_REGISTER_MESSAGE)
+    .then(response => {
+      console.log('[TabSearch][TST] Registered with TST:', response);
+    })
+    .catch(err => {
+      console.warn('[TabSearch][TST] Could not register with TST:', err);
+    });
+}
+
+function addFlattenedState(tabId) {
+  // Support both single tabId and array of tabIds
+  const tabIds = Array.isArray(tabId) ? tabId : [tabId];
+  browser.runtime.sendMessage(TST_ID, {
+    type: 'add-tab-state',
+    tabs: tabIds,
+    state: 'flattened'
+  }).then(() => {
+    console.log('[TabSearch][TST] Added flattened state to tabs', tabIds);
+  }).catch(err => {
+    console.warn('[TabSearch][TST] Failed to add flattened state:', err);
+  });
+}
+
+function removeFlattenedState(tabId) {
+  // Support both single tabId and array of tabIds
+  const tabIds = Array.isArray(tabId) ? tabId : [tabId];
+  browser.runtime.sendMessage(TST_ID, {
+    type: 'remove-tab-state',
+    tabs: tabIds,
+    state: 'flattened'
+  }).then(() => {
+    console.log('[TabSearch][TST] Removed flattened state from tabs', tabIds);
+  }).catch(err => {
+    console.warn('[TabSearch][TST] Failed to remove flattened state:', err);
+  });
+}
 // On extension startup, create a new tab, hide it, then close it (unless disabled by option)
 /*
 if (typeof browser !== 'undefined' && browser.tabs && browser.tabs.create && browser.tabs.hide && browser.tabs.remove && browser.storage && browser.storage.local) {
@@ -73,8 +152,15 @@ function startProgressIndicator(getCountFn) {
 }
 
 browser.runtime.onMessage.addListener(async (msg, sender) => {
+  // Check if TST support is enabled
+  const options = await browser.storage.local.get(['tstSupport']);
+  const tstEnabled = options.tstSupport;
   console.log('Received message:', msg, 'from sender:', sender);
   if (msg.action === 'search-tabs') {
+    // If TST support is enabled, register with TST (only once per session)
+    if (tstEnabled) {
+      registerWithTST();
+    }
     searchInProgress = true;
     const term = msg.term.toLowerCase();
     const searchUrls = msg.searchUrls;
@@ -182,9 +268,23 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     if (toHide.length === 0 && toShow.length === 0) {
       searchInProgress = false;
     }
+    // After all tab hiding/unhiding is complete, add flattened state to all visible tabs (TST)
+    if (tstEnabled) {
+      const allTabs = await browser.tabs.query({});
+      const visibleTabIds = allTabs.filter(tab => !tab.hidden).map(tab => tab.id);
+      if (visibleTabIds.length > 0) {
+        addFlattenedState(visibleTabIds);
+      }
+    }
   }
   // Listen for popup closed event
   if (msg.action === 'popup-closed') {
+    // If TST support is enabled, remove flattened state from all tabs in one call
+    if (tstEnabled) {
+      const allTabs = await browser.tabs.query({});
+      const allTabIds = allTabs.map(tab => tab.id);
+      removeFlattenedState(allTabIds);
+    }
     searchInProgress = false;
     // Always try to show all hidden tabs, even if lastHiddenTabIds is empty
     try {
