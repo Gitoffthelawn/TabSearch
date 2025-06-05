@@ -59,6 +59,13 @@
 
 ## Changelog
 
+<details id="History"><summary>History</summary>
+
+### v0.4.1
+  - Fixed https://github.com/irvinm/TabSearch/issues/2
+    - Selecting matching tabs across multiple windows should now work
+    - There is a Firefox limitation that dragging tabs has to be done PER window
+
 ### v0.4.0
 - Added new option to multi-select matching tabs
 
@@ -84,3 +91,4 @@
     - Option for real-time search (filter as you type) or manual search (on submit)
     - Keyboard short-cut support to bring up search dialog
     - Support to change key assignment via standard about:addons → gear → Manage Extension Shortcuts
+</details>
