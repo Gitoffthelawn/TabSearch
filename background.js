@@ -238,10 +238,9 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     let toHide = [];
     let toShow = [];
     // If the search term is empty, unhide all tabs and return
-    // Also, if content search is the only enabled search and term is less than 3 chars, unhide all and return
-    const onlyContentSearch = searchContents && !searchTitles && !searchUrls;
-    if (!term || (onlyContentSearch && term.length < 3)) {
+    if (!term) {
       searchInProgress = false;
+      lastMatchedTabIds = [];
       const hiddenTabIds = tabs.filter(tab => tab.hidden).map(tab => tab.id);
       if (hiddenTabIds.length > 0) {
         // Start progress indicator for unhiding
@@ -282,8 +281,12 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
           // browser.find.find may fail on some tabs (e.g., special pages)
         }
       }
-      // Only call if either searchTitles or searchUrls is enabled OR if searchContents is enabled and the term is >= 3 chars
-      if (searchTitles || searchUrls || (searchContents && term.length >= 3)) {
+      // Always allow title/url search for any non-empty term
+      // Only allow content search if term >= 3
+      if (
+        (searchTitles || searchUrls) ||
+        (searchContents && term.length >= 3)
+      ) {
         if (matches) matchedTabIds.push(tab.id);
         if (!matches && !tab.active && !tab.pinned) {
           if (!tab.hidden) toHide.push(tab.id);
