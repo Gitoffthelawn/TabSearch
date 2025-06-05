@@ -22,22 +22,16 @@ const TST_REGISTER_MESSAGE = {
   ],
   // Register the custom tab state and its CSS
   // See: https://github.com/piroor/treestyletab/wiki/API-for-other-addons#register-self
+  // Remove all indentation and hide the twisty icon in flattened state
   style: `
-    .tab.flattened:not(.pinned) {
-      margin-left: 0 !important;
-      padding-left: 0 !important;
-      --twisty-margin: 0 !important;
-      --tab-margin: 0 !important;
-      --tab-indent: 0 !important;
+    .tab.flattened:not(.pinned) tab-twisty::before {
+      display: none !important;
     }
-    .tab.flattened:not(.pinned) .label,
-    .tab.flattened:not(.pinned) .twisty,
-    .tab.flattened:not(.pinned) .counter {
-      margin-left: 0 !important;
-      padding-left: 0 !important;
+    .tab.flattened:not(.pinned) tab-item-substance {
+      margin-left: var(--shift-tabs-for-scrollbar-distance) !important;
     }
   `,
-};
+}
 
 function registerWithTST() {
   if (!browser || !browser.runtime || !browser.runtime.sendMessage) return;
