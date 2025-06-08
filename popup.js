@@ -166,6 +166,18 @@ document.getElementById('search').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
     e.preventDefault();
     doSearch();
+  } else if (e.key === 'Escape' || e.key === 'Esc') {
+    // Send popup-closed message to background before popup closes
+    if (browser && browser.windows && browser.runtime && browser.runtime.sendMessage) {
+      browser.windows.getCurrent().then(win => {
+        browser.runtime.sendMessage({ action: 'popup-closed', windowId: win.id });
+      }).catch(err => {
+        browser.runtime.sendMessage({ action: 'popup-closed' });
+      });
+    } else {
+      browser.runtime.sendMessage({ action: 'popup-closed' });
+    }
+    // Let the popup close naturally
   }
 });
 document.getElementById('search-btn').addEventListener('click', function(e) {
