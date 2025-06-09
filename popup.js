@@ -1,3 +1,29 @@
+// ...tab list code removed...
+
+// --- Monitor and React to All Option Changes ---
+function handleOptionChange() {
+  // Reset the search input field
+  document.getElementById('search').value = '';
+  // Deselect all tabs in the browser (even if selectMatchingTabs is enabled)
+  if (browser && browser.tabs && browser.tabs.query && browser.tabs.highlight) {
+    browser.tabs.query({currentWindow: true}, function(tabs) {
+      const activeTab = tabs.find(tab => tab.active);
+      if (activeTab) {
+        browser.tabs.highlight({tabs: [activeTab.index]});
+      }
+      tabs.forEach(tab => {
+        if (!tab.active && tab.highlighted) {
+          browser.tabs.update(tab.id, { highlighted: false });
+        }
+      });
+    });
+  }
+  // Tell background to clear lastMatchedTabIds so no tabs are re-highlighted
+  if (browser && browser.runtime && browser.runtime.sendMessage) {
+    browser.runtime.sendMessage({ action: 'clear-matched-tabs' });
+  }
+}
+
 // Audio search button handler
 
 // Audio search button handler
@@ -191,6 +217,15 @@ window.addEventListener('DOMContentLoaded', function() {
   let searchInput;
   // Notify background when popup is closed, including windowId
   window.addEventListener('unload', function() {
+    // Always unhide all tabs when popup closes
+    if (browser && browser.tabs && browser.tabs.query && browser.tabs.show) {
+      browser.tabs.query({currentWindow: true, hidden: true}, function(hiddenTabs) {
+        if (hiddenTabs && hiddenTabs.length > 0) {
+          const hiddenTabIds = hiddenTabs.map(tab => tab.id);
+          browser.tabs.show(hiddenTabIds);
+        }
+      });
+    }
     if (browser && browser.windows && browser.runtime && browser.runtime.sendMessage) {
       browser.windows.getCurrent().then(win => {
         console.log('[TabSearch] popup.html closed at', new Date().toISOString(), 'windowId:', win.id);
@@ -243,6 +278,7 @@ window.addEventListener('DOMContentLoaded', function() {
     if (checked && window.TabSearchTST && window.TabSearchTST.registerWithTST) {
       window.TabSearchTST.registerWithTST();
     }
+    handleOptionChange();
   });
 // Load TST integration script
 const tstScript = document.createElement('script');
@@ -339,31 +375,37 @@ document.head.appendChild(tstScript);
   }
   document.getElementById('select-matching-tabs').addEventListener('change', function() {
     saveAllOptions();
+    handleOptionChange();
   });
   document.getElementById('search-urls').addEventListener('change', function(e) {
     const prev = document.activeElement;
     saveAllOptions();
     updateSearchButtonState();
     if (prev && prev !== document.getElementById('search')) prev.focus();
+    handleOptionChange();
   });
   document.getElementById('search-titles').addEventListener('change', function(e) {
     const prev = document.activeElement;
     saveAllOptions();
     updateSearchButtonState();
     if (prev && prev !== document.getElementById('search')) prev.focus();
+    handleOptionChange();
   });
   document.getElementById('search-contents').addEventListener('change', function(e) {
     const prev = document.activeElement;
     saveAllOptions();
     updateSearchButtonState();
     if (prev && prev !== document.getElementById('search')) prev.focus();
+    handleOptionChange();
   });
   document.getElementById('realtime-search').addEventListener('change', function() {
     saveAllOptions();
     updateSearchButtonState();
+    handleOptionChange();
   });
   document.getElementById('disable-empty-tab').addEventListener('change', function() {
     saveAllOptions();
+    handleOptionChange();
   });
 
   // Real-time search handler

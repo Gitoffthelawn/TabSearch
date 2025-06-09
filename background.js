@@ -199,6 +199,10 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
   const options = await browser.storage.local.get(['tstSupport']);
   const tstEnabled = options.tstSupport;
   console.log('Received message:', msg, 'from sender:', sender);
+  if (msg.action === 'clear-matched-tabs') {
+    lastMatchedTabIds = [];
+    return;
+  }
   if (msg.action === 'search-tabs') {
 
     if (tstEnabled) {
