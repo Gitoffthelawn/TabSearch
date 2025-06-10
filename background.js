@@ -168,11 +168,15 @@ if (
 
 
 
+
 let lastHiddenTabIds = [];
 let progressInterval = null;
 let tabsToProcess = 0;
 let searchInProgress = false;
 let lastMatchedTabIds = [];
+// Store the original TST tree structure for restoring after search
+let originalTSTTreeStructure = null;
+let originalTSTTreeSnapshotTaken = false;
 
 function updateBadge(count) {
   browser.action.setBadgeText({ text: count > 0 ? String(count) : '' });
@@ -193,34 +197,34 @@ function startProgressIndicator(getCountFn) {
 }
 
 browser.runtime.onMessage.addListener(async (msg, sender) => {
-  // For restoring TST tree structure after search
-  let originalTSTTreeStructure = null;
+
   // Check if TST support is enabled
   const options = await browser.storage.local.get(['tstSupport']);
   const tstEnabled = options.tstSupport;
   console.log('Received message:', msg, 'from sender:', sender);
+
   if (msg.action === 'clear-matched-tabs') {
     lastMatchedTabIds = [];
     return;
   }
+
   if (msg.action === 'search-tabs') {
-
     if (tstEnabled) {
-
-      // If TST support is enabled, register with TST (only once per session)
+      // Register with TST (only once per session)
       registerWithTST();
-
-      // Take a snapshot of the TST tree structure before search (for restoration)
-      try {
-        originalTSTTreeStructure = await browser.runtime.sendMessage(TST_ID, {
-          type: 'get-tree-structure',
-          tabs: '*'
-        });
-        console.log('[TabSearch][TST] Snapshot of original tree structure:', originalTSTTreeStructure);
-      } catch (e) {
-        console.warn('[TabSearch][TST] Failed to get original tree structure:', e);
+      // Only take a snapshot if we haven't already in this session
+      if (!originalTSTTreeSnapshotTaken) {
+        try {
+          originalTSTTreeStructure = await browser.runtime.sendMessage(TST_ID, {
+            type: 'get-tree-structure',
+            tabs: '*'
+          });
+          originalTSTTreeSnapshotTaken = true;
+          console.log('[TabSearch][TST] Snapshot of original tree structure:', originalTSTTreeStructure);
+        } catch (e) {
+          console.warn('[TabSearch][TST] Failed to get original tree structure:', e);
+        }
       }
-
       // Expand all trees for all tabs before search
       browser.runtime.sendMessage(TST_ID, {
         type: 'expand-tree',
@@ -359,19 +363,6 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       const allTabs = await browser.tabs.query({});
       const allTabIds = allTabs.map(tab => tab.id);
       removeFlattenedState(allTabIds);
-      // Restore the original TST tree structure if we have a snapshot
-      if (originalTSTTreeStructure) {
-        try {
-          await browser.runtime.sendMessage(TST_ID, {
-            type: 'set-tree-structure',
-            structure: originalTSTTreeStructure
-          });
-          console.log('[TabSearch][TST] Restored original tree structure');
-        } catch (e) {
-          console.warn('[TabSearch][TST] Failed to restore original tree structure:', e);
-        }
-        originalTSTTreeStructure = null;
-      }
     }
     searchInProgress = false;
     // Always try to show all hidden tabs, even if lastHiddenTabIds is empty
@@ -399,6 +390,47 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
         clearInterval(progressInterval);
         progressInterval = null;
       }
+    }
+    // Now restore the collapsed/expanded state of trees
+    if (tstEnabled && originalTSTTreeSnapshotTaken && originalTSTTreeStructure) {
+      try {
+        // Instead of comparing, just use the original snapshot to restore state
+        const toCollapse = [];
+        const toExpand = [];
+        for (const t of originalTSTTreeStructure) {
+          if (t && typeof t.id !== 'undefined') {
+            if (t.collapsed === true) {
+              toCollapse.push(t.id);
+            } else {
+              toExpand.push(t.id);
+            }
+          }
+        }
+        console.log('[TabSearch][TST] Tabs to collapse (from original):', toCollapse);
+        console.log('[TabSearch][TST] Tabs to expand (from original):', toExpand);
+        // Collapse trees that were originally collapsed
+        if (toCollapse.length > 0) {
+          await browser.runtime.sendMessage(TST_ID, {
+            type: 'collapse-tree',
+            tabs: toCollapse,
+            recursively: false
+          });
+          console.log('[TabSearch][TST] Collapsed trees for tabs', toCollapse);
+        }
+        // Expand trees that were originally expanded
+        if (toExpand.length > 0) {
+          await browser.runtime.sendMessage(TST_ID, {
+            type: 'expand-tree',
+            tabs: toExpand,
+            recursively: false
+          });
+          console.log('[TabSearch][TST] Expanded trees for tabs', toExpand);
+        }
+      } catch (e) {
+        console.warn('[TabSearch][TST] Failed to restore tree collapsed/expanded state:', e);
+      }
+      originalTSTTreeStructure = null;
+      originalTSTTreeSnapshotTaken = false;
     }
     // Select all matching tabs if option is enabled
     const items = await browser.storage.local.get(["selectMatchingTabs"]);
