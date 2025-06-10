@@ -128,6 +128,20 @@ document.addEventListener('focusout', (e) => {
   }, 0);
 });
 
+// Backup: send popup-closed on unload
+window.addEventListener('unload', function() {
+  console.log('[TabSearch] unload: sending popup-closed');
+  if (browser && browser.windows && browser.runtime && browser.runtime.sendMessage) {
+    browser.windows.getCurrent().then(win => {
+      browser.runtime.sendMessage({ action: 'popup-closed', windowId: win.id });
+    }).catch(e => {
+      browser.runtime.sendMessage({ action: 'popup-closed' });
+    });
+  } else {
+    browser.runtime.sendMessage({ action: 'popup-closed' });
+  }
+});
+
 // Handle privacy info button click (must be in external JS due to CSP)
 document.addEventListener('DOMContentLoaded', function() {
   var btn = document.getElementById('privacy-info-btn');
