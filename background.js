@@ -219,8 +219,12 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
             type: 'get-tree-structure',
             tabs: '*'
           });
-          originalTSTTreeSnapshotTaken = true;
-          console.log('[TabSearch][TST] Snapshot of original tree structure:', originalTSTTreeStructure);
+          if (originalTSTTreeStructure !== null && originalTSTTreeStructure !== undefined) {
+            originalTSTTreeSnapshotTaken = true;
+            console.log('[TabSearch][TST] Snapshot of original tree structure:', originalTSTTreeStructure);
+          } else {
+            console.warn('[TabSearch][TST] Received invalid tree structure:', originalTSTTreeStructure);
+          }
         } catch (e) {
           console.warn('[TabSearch][TST] Failed to get original tree structure:', e);
         }
