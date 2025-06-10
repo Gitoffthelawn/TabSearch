@@ -396,15 +396,6 @@ document.head.appendChild(tstScript);
     saveAllOptions();
     handleOptionChange();
   });
-
-  // Real-time search handler
-  if (searchInput) {
-    searchInput.addEventListener('input', function() {
-      if (document.getElementById('realtime-search').checked) {
-        doSearch();
-      }
-    });
-  }
 });
 
 function doSearch() {
