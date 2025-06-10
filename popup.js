@@ -77,27 +77,35 @@ function showNoAudioTabsMessage() {
 
 function searchAudioTabs() {
   if (!browser || !browser.tabs) return;
-  browser.tabs.query({audible: true}).then((audibleTabs) => {
-    if (audibleTabs.length === 0) {
-      showNoAudioTabsMessage();
-      return;
-    }
-    if (audibleTabs.length === 1) {
-      // Only one tab playing audio: switch directly
-      browser.tabs.update(audibleTabs[0].id, {active: true});
-      // Do NOT close the popup
-      return;
-    }
-    // More than one: hide all other tabs (show only audible)
-    browser.tabs.query({currentWindow: true}).then((allTabs) => {
-      const audibleTabIds = audibleTabs.map(tab => tab.id);
-      const toHide = allTabs.filter(tab => !tab.audible && !tab.pinned && !tab.active).map(tab => tab.id);
-      if (toHide.length > 0 && browser.tabs.hide) {
-        browser.tabs.hide(toHide);
-        // Do NOT change the current active tab or close the popup
+  browser.tabs.query({audible: true})
+    .then((audibleTabs) => {
+      if (audibleTabs.length === 0) {
+        showNoAudioTabsMessage();
+        return;
       }
+      if (audibleTabs.length === 1) {
+        // Only one tab playing audio: switch directly
+        browser.tabs.update(audibleTabs[0].id, {active: true});
+        // Do NOT close the popup
+        return;
+      }
+      // More than one: hide all other tabs (show only audible)
+      browser.tabs.query({currentWindow: true})
+        .then((allTabs) => {
+          const audibleTabIds = audibleTabs.map(tab => tab.id);
+          const toHide = allTabs.filter(tab => !tab.audible && !tab.pinned && !tab.active).map(tab => tab.id);
+          if (toHide.length > 0 && browser.tabs.hide) {
+            browser.tabs.hide(toHide);
+            // Do NOT change the current active tab or close the popup
+          }
+        })
+        .catch((err) => {
+          console.error('[TabSearch] Error querying all tabs for audio search:', err);
+        });
+    })
+    .catch((err) => {
+      console.error('[TabSearch] Error querying audible tabs:', err);
     });
-  });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
