@@ -128,7 +128,7 @@ document.addEventListener('focusout', (e) => {
   }, 0);
 });
 
-// Backup: send popup-closed on unload
+// Send popup-closed on unload
 window.addEventListener('unload', function() {
   console.log('[TabSearch] unload: sending popup-closed');
   if (browser && browser.windows && browser.runtime && browser.runtime.sendMessage) {
@@ -229,31 +229,6 @@ document.getElementById('search-btn').addEventListener('click', function(e) {
 // Attach all DOMContentLoaded logic in a single listener
 window.addEventListener('DOMContentLoaded', function() {
   let searchInput;
-  // Notify background when popup is closed, including windowId
-  window.addEventListener('unload', function() {
-    // Always unhide all tabs when popup closes
-    if (browser && browser.tabs && browser.tabs.query && browser.tabs.show) {
-      browser.tabs.query({currentWindow: true, hidden: true}, function(hiddenTabs) {
-        if (hiddenTabs && hiddenTabs.length > 0) {
-          const hiddenTabIds = hiddenTabs.map(tab => tab.id);
-          browser.tabs.show(hiddenTabIds);
-        }
-      });
-    }
-    if (browser && browser.windows && browser.runtime && browser.runtime.sendMessage) {
-      browser.windows.getCurrent().then(win => {
-        console.log('[TabSearch] popup.html closed at', new Date().toISOString(), 'windowId:', win.id);
-        browser.runtime.sendMessage({ action: 'popup-closed', windowId: win.id });
-      }).catch(e => {
-        console.log('[TabSearch] popup.html closed at', new Date().toISOString(), 'windowId: unknown');
-        browser.runtime.sendMessage({ action: 'popup-closed' });
-      });
-    } else {
-      console.log('[TabSearch] popup.html closed at', new Date().toISOString(), 'windowId: unavailable');
-      browser.runtime.sendMessage({ action: 'popup-closed' });
-    }
-  });
-
 
   loadOptions(function(items) {
     // Only use defaults if all are undefined, otherwise use stored values
