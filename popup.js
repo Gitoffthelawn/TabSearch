@@ -27,14 +27,6 @@ function handleOptionChange() {
 // Audio search button handler
 
 // Audio search button handler
-function searchAudioTabs() {
-  if (!browser || !browser.tabs) return;
-  browser.tabs.query({audible: true}).then((audibleTabs) => {
-    if (audibleTabs.length === 0) {
-      showNoAudioTabsMessage();
-      return;
-    }
-// Show a custom message with the addon icon when no audio tabs are found
 function showNoAudioTabsMessage() {
   // Create overlay
   let overlay = document.createElement('div');
@@ -82,6 +74,14 @@ function showNoAudioTabsMessage() {
   overlay.appendChild(btn);
   document.body.appendChild(overlay);
 }
+
+function searchAudioTabs() {
+  if (!browser || !browser.tabs) return;
+  browser.tabs.query({audible: true}).then((audibleTabs) => {
+    if (audibleTabs.length === 0) {
+      showNoAudioTabsMessage();
+      return;
+    }
     if (audibleTabs.length === 1) {
       // Only one tab playing audio: switch directly
       browser.tabs.update(audibleTabs[0].id, {active: true});
