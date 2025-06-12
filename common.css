@@ -1,3 +1,7 @@
+/* TST sub-option indentation for popup.html */
+.tst-suboption {
+  margin-left: 2em;
+}
 .icon-btn#audio-search-btn {
   margin-left: 8px;
   width: 40px;

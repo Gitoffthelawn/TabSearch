@@ -102,7 +102,8 @@ let tabsToProcess = 0;
 let searchInProgress = false;
 let lastMatchedTabIds = [];
 // Store the original TST tree structure for restoring after search
-let originalTSTTreeStructure = null;
+// Store the original TST tree structure for restoring after search, per window
+let originalTSTTreeStructureByWindow = {};
 let originalTSTTreeSnapshotTaken = false;
 
 function updateBadge(count) {
@@ -142,30 +143,44 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       // Only take a snapshot if we haven't already in this session
       if (!originalTSTTreeSnapshotTaken) {
         try {
-          originalTSTTreeStructure = await browser.runtime.sendMessage(TST_ID, {
-            type: 'get-tree-structure',
-            tabs: '*'
-          });
-          if (originalTSTTreeStructure !== null && originalTSTTreeStructure !== undefined) {
+          const allWindows = await browser.windows.getAll();
+          let allValid = true;
+          for (const win of allWindows) {
+            const tree = await browser.runtime.sendMessage(TST_ID, {
+              type: 'get-tree-structure',
+              window: win.id,
+              tabs: '*'
+            });
+            if (tree !== null && tree !== undefined) {
+              originalTSTTreeStructureByWindow[win.id] = tree;
+            } else {
+              allValid = false;
+              console.warn(`[TabSearch][TST] Received invalid tree structure for window ${win.id}:`, tree);
+            }
+          }
+          if (allValid) {
             originalTSTTreeSnapshotTaken = true;
-            console.log('[TabSearch][TST] Snapshot of original tree structure:', originalTSTTreeStructure);
-          } else {
-            console.warn('[TabSearch][TST] Received invalid tree structure:', originalTSTTreeStructure);
+            console.log('[TabSearch][TST] Snapshot of original tree structure by window:', originalTSTTreeStructureByWindow);
           }
         } catch (e) {
           console.warn('[TabSearch][TST] Failed to get original tree structure:', e);
         }
       }
-      // Expand all trees for all tabs before search
-      browser.runtime.sendMessage(TST_ID, {
-        type: 'expand-tree',
-        tabs: '*', // Use '*' to expand all tabs
-        recursively: true
-      }).then(() => {
-        console.log('[TabSearch][TST] Expanded all trees');
-      }).catch(err => {
-        console.warn('[TabSearch][TST] Failed to expand trees: ', err);
-      });
+      // Expand all trees for all tabs in all windows before search
+      const allWindows = await browser.windows.getAll();
+      for (const win of allWindows) {
+        try {
+          await browser.runtime.sendMessage(TST_ID, {
+            type: 'expand-tree',
+            window: win.id,
+            tabs: '*',
+            recursively: true
+          });
+          console.log(`[TabSearch][TST] Expanded all trees in window ${win.id}`);
+        } catch (err) {
+          console.warn(`[TabSearch][TST] Failed to expand trees in window ${win.id}:`, err);
+        }
+      }
     }
 
     searchInProgress = true;
@@ -323,48 +338,47 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       }
     }
     // Now restore the collapsed/expanded state of trees
-    if (tstEnabled && originalTSTTreeSnapshotTaken && originalTSTTreeStructure) {
+    if (tstEnabled && originalTSTTreeSnapshotTaken && originalTSTTreeStructureByWindow) {
       try {
-        // Instead of comparing, just use the original snapshot to restore state
-        const toCollapse = [];
-        const toExpand = [];
-        for (const t of originalTSTTreeStructure) {
-          if (t && typeof t.id !== 'undefined') {
-            if (t.collapsed === true) {
-              toCollapse.push(t.id);
-            } else {
-              toExpand.push(t.id);
+        for (const [windowId, treeStructure] of Object.entries(originalTSTTreeStructureByWindow)) {
+          const toCollapse = [];
+          const toExpand = [];
+          for (const t of treeStructure) {
+            if (t && typeof t.id !== 'undefined') {
+              if (t.collapsed === true) {
+                toCollapse.push(t.id);
+              } else {
+                toExpand.push(t.id);
+              }
             }
           }
-        }
-        console.log('[TabSearch][TST] Tabs to collapse (from original):', toCollapse);
-        console.log('[TabSearch][TST] Tabs to expand (from original):', toExpand);
-        // Collapse trees that were originally collapsed
-        if (toCollapse.length > 0) {
-          await browser.runtime.sendMessage(TST_ID, {
-            type: 'collapse-tree',
-            tabs: toCollapse,
-            recursively: false
-          });
-          console.log('[TabSearch][TST] Collapsed trees for tabs', toCollapse);
-        }
-        // Expand trees that were originally expanded
-        if (toExpand.length > 0) {
-          await browser.runtime.sendMessage(TST_ID, {
-            type: 'expand-tree',
-            tabs: toExpand,
-            recursively: false
-          });
-          console.log('[TabSearch][TST] Expanded trees for tabs', toExpand);
+          if (toCollapse.length > 0) {
+            await browser.runtime.sendMessage(TST_ID, {
+              type: 'collapse-tree',
+              window: Number(windowId),
+              tabs: toCollapse,
+              recursively: false
+            });
+            console.log(`[TabSearch][TST] Collapsed trees for tabs in window ${windowId}:`, toCollapse);
+          }
+          if (toExpand.length > 0) {
+            await browser.runtime.sendMessage(TST_ID, {
+              type: 'expand-tree',
+              window: Number(windowId),
+              tabs: toExpand,
+              recursively: false
+            });
+            console.log(`[TabSearch][TST] Expanded trees for tabs in window ${windowId}:`, toExpand);
+          }
         }
       } catch (e) {
         console.warn('[TabSearch][TST] Failed to restore tree collapsed/expanded state:', e);
       }
-      originalTSTTreeStructure = null;
+      originalTSTTreeStructureByWindow = {};
       originalTSTTreeSnapshotTaken = false;
     }
     // Select all matching tabs if option is enabled
-    const items = await browser.storage.local.get(["selectMatchingTabs"]);
+    const items = await browser.storage.local.get(["selectMatchingTabs", "tstSupport", "tstAutoExpand"]);
     // Check if the feature is enabled and if there are any tabs from the last match
     if (items.selectMatchingTabs && lastMatchedTabIds && lastMatchedTabIds.length > 0) {
       const allWindows = await browser.windows.getAll({ populate: false }); // Get all windows
@@ -394,8 +408,49 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
               tabs: matchedTabsInWindow.map(tab => tab.index) // Use the tab's index property
             });
           }
+
+          // TST auto-expand logic
+          if (items.tstSupport && items.tstAutoExpand && matchedTabsInWindow.length > 0) {
+            try {
+              // Get the tree structure for this window from TST
+              const tree = await browser.runtime.sendMessage(TST_ID, {
+                type: 'get-tree',
+                tabs: '*', // Get the full tree structure for all tabs in this window
+                window: targetWindowId
+              });
+              // For each matched tab, walk up its parent chain and collect all parent tab IDs
+              const parentIdsToExpand = new Set();
+              const tabIdToNode = {};
+              if (tree && Array.isArray(tree)) {
+                tree.forEach(node => { tabIdToNode[node.id] = node; });
+                for (const tab of matchedTabsInWindow) {
+                  let current = tabIdToNode[tab.id];
+                  // Use ancestorTabIds if available
+                  const ancestorTabIds = current && Array.isArray(current.ancestorTabIds) ? current.ancestorTabIds : [];
+                  ancestorTabIds.forEach(parentId => {
+                    parentIdsToExpand.add(parentId);
+                  });
+                }
+                if (parentIdsToExpand.size > 0) {
+                  await browser.runtime.sendMessage(TST_ID, {
+                    type: 'expand-tree',
+                    window: targetWindowId,
+                    tabs: Array.from(parentIdsToExpand),
+                    recursively: false
+                  });
+                  console.log('[TabSearch][TST] Auto-expanded parent trees:', Array.from(parentIdsToExpand));
+                } else {
+                  console.log('[TabSearch][TST] No parent trees to expand.');
+                }
+              }
+            } catch (e) {
+              console.warn('[TabSearch][TST] Failed to auto-expand parent trees:', e);
+            }
+          }
         }
       }
+      // After handling, clear lastMatchedTabIds so it doesn't persist for next popup
+      lastMatchedTabIds = [];
     }
     lastHiddenTabIds = [];
   }

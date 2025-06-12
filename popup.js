@@ -160,7 +160,7 @@ function saveOptions(options) {
 
 function loadOptions(callback) {
   if (browser && browser.storage && browser.storage.local) {
-    browser.storage.local.get(["searchUrls", "searchTitles", "searchContents", "realtimeSearch", "disableEmptyTab", "selectMatchingTabs", "tstSupport"]).then(callback);
+    browser.storage.local.get(["searchUrls", "searchTitles", "searchContents", "realtimeSearch", "disableEmptyTab", "selectMatchingTabs", "tstSupport", "tstAutoExpand"]).then(callback);
   }
 }
 
@@ -237,6 +237,7 @@ window.addEventListener('DOMContentLoaded', function() {
     let selectMatchingTabsChecked = allUndefined ? false : (typeof items.selectMatchingTabs === 'undefined' ? false : !!items.selectMatchingTabs);
     let disableEmptyTabChecked = allUndefined ? false : (typeof items.disableEmptyTab === 'undefined' ? false : !!items.disableEmptyTab);
     let tstSupportChecked = allUndefined ? false : (typeof items.tstSupport === 'undefined' ? false : !!items.tstSupport);
+    let tstAutoExpandChecked = allUndefined ? false : (typeof items.tstAutoExpand === 'undefined' ? false : !!items.tstAutoExpand);
 
     document.getElementById('search-urls').checked = urlsChecked;
     document.getElementById('search-titles').checked = titlesChecked;
@@ -245,19 +246,30 @@ window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('select-matching-tabs').checked = selectMatchingTabsChecked;
     document.getElementById('disable-empty-tab').checked = disableEmptyTabChecked;
     document.getElementById('tst-support').checked = tstSupportChecked;
+    document.getElementById('tst-auto-expand').checked = tstAutoExpandChecked;
+    document.getElementById('tst-auto-expand').disabled = !tstSupportChecked;
 
     // If all were undefined, save the defaults so future loads are correct
     if (allUndefined) {
-      saveOptions({ searchUrls: true, searchTitles: true, searchContents: true, realtimeSearch: true, disableEmptyTab: false, selectMatchingTabs: false, tstSupport: false });
+      saveOptions({ searchUrls: true, searchTitles: true, searchContents: true, realtimeSearch: true, disableEmptyTab: false, selectMatchingTabs: false, tstSupport: false, tstAutoExpand: false });
     }
-  document.getElementById('tst-support').addEventListener('change', function() {
-    const checked = this.checked;
-    browser.storage.local.set({ tstSupport: checked });
-    if (checked && window.TabSearchTST && window.TabSearchTST.registerWithTST) {
-      window.TabSearchTST.registerWithTST();
-    }
-    handleOptionChange();
-  });
+    document.getElementById('tst-support').addEventListener('change', function() {
+      const checked = this.checked;
+      browser.storage.local.set({ tstSupport: checked });
+      document.getElementById('tst-auto-expand').disabled = !checked;
+      if (!checked) {
+        document.getElementById('tst-auto-expand').checked = false;
+        browser.storage.local.set({ tstAutoExpand: false });
+      }
+      if (checked && window.TabSearchTST && window.TabSearchTST.registerWithTST) {
+        window.TabSearchTST.registerWithTST();
+      }
+      handleOptionChange();
+    });
+    document.getElementById('tst-auto-expand').addEventListener('change', function() {
+      const checked = this.checked;
+      browser.storage.local.set({ tstAutoExpand: checked });
+    });
 
   updateSearchButtonState();
 
@@ -339,7 +351,9 @@ window.addEventListener('DOMContentLoaded', function() {
       searchContents: document.getElementById('search-contents').checked,
       realtimeSearch: document.getElementById('realtime-search').checked,
       disableEmptyTab: document.getElementById('disable-empty-tab').checked,
-      selectMatchingTabs: document.getElementById('select-matching-tabs').checked
+      selectMatchingTabs: document.getElementById('select-matching-tabs').checked,
+      tstSupport: document.getElementById('tst-support').checked,
+      tstAutoExpand: document.getElementById('tst-auto-expand').checked
     });
   }
 
