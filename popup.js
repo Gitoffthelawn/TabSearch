@@ -114,40 +114,23 @@ document.addEventListener('DOMContentLoaded', function() {
     audioBtn.addEventListener('click', searchAudioTabs);
   }
 });
+
 // Log when popup.html is opened
 console.warn('[TabSearch] popup.html opened at', new Date().toISOString());
+
 // Log document.activeElement on every focus change
 document.addEventListener('focusin', (e) => {
   console.log('[TabSearch] focusin: document.activeElement:', document.activeElement, document.activeElement && document.activeElement.id);
 });
-document.addEventListener('focusout', (e) => {
-  setTimeout(() => {
-    console.log('[TabSearch] focusout: document.activeElement:', document.activeElement, document.activeElement && document.activeElement.id);
-    // On focusout, request background to restore all tabs and multi-select if enabled
-    if (browser && browser.windows && browser.runtime && browser.runtime.sendMessage) {
-      browser.windows.getCurrent().then(win => {
-        browser.runtime.sendMessage({ action: 'popup-closed', windowId: win.id });
-      }).catch(e => {
-        browser.runtime.sendMessage({ action: 'popup-closed' });
-      });
-    } else {
-      browser.runtime.sendMessage({ action: 'popup-closed' });
-    }
-  }, 0);
-});
 
-// Send popup-closed on unload
-window.addEventListener('unload', function() {
-  console.log('[TabSearch] unload: sending popup-closed');
-  if (browser && browser.windows && browser.runtime && browser.runtime.sendMessage) {
-    browser.windows.getCurrent().then(win => {
-      browser.runtime.sendMessage({ action: 'popup-closed', windowId: win.id });
-    }).catch(e => {
-      browser.runtime.sendMessage({ action: 'popup-closed' });
-    });
-  } else {
+document.addEventListener('focusout', (e) => {
+    console.log('[TabSearch] focusout: document.activeElement:', document.activeElement, document.activeElement && document.activeElement.id);
+
+    console.log('[TabSearch] e:', e);
+    
+    console.log('[TabSearch] focusout: Sending popup-closed message to background');
     browser.runtime.sendMessage({ action: 'popup-closed' });
-  }
+
 });
 
 // Handle privacy info button click (must be in external JS due to CSP)
@@ -228,6 +211,7 @@ document.getElementById('search').addEventListener('keydown', function(e) {
     // Let the popup close naturally
   }
 });
+
 document.getElementById('search-btn').addEventListener('click', function(e) {
   e.preventDefault();
   doSearch();
