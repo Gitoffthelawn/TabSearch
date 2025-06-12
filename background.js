@@ -56,53 +56,6 @@ function addFlattenedState(tabId) {
   }).catch(err => {
     console.warn('[TabSearch][TST] Failed to add flattened state:', err);
   });
-
-/*
-  // Get tree structure and log tabs with 'subtree-collapsed' state
-  browser.runtime.sendMessage(TST_ID, {
-    type: 'get-tree-structure',
-    tabs: tabIds
-  }).then(tree => {
-    if (Array.isArray(tree)) {
-      console.log('[TabSearch][TST] get-tree-structure response:', tree);
-
-      const collapsedTabs = tree.filter(t => t.collapsed === true);
-      if (collapsedTabs.length > 0) {
-        // console.log('[TabSearch][TST] Tabs with subtree-collapsed state:', collapsedTabs.map(t => t.tab));
-        console.log('[TabSearch][TST] Tabs with subtree-collapsed state:', collapsedTabs);
-
-        // Expand the tree for these tabs
-        browser.runtime.sendMessage(TST_ID, {
-          type: 'expand-tree',
-          tabs: collapsedTabs.map(t => t.tab), // Use the tab IDs from the collapsed tabs
-          recursively: false
-        }).then(() => {
-          console.log('[TabSearch][TST] Expanded tree for tabs', collapsedTabs.map(t => t.tab));
-        }).catch(err => {
-          console.warn('[TabSearch][TST] Failed to expand tree for tabs:', err);
-        });
-      } else {
-        console.log('[TabSearch][TST] No tabs with subtree-collapsed state');
-      }
-    } else {
-      console.log('[TabSearch][TST] get-tree-structure response:', tree);
-    }
-  }).catch(err => {
-    console.warn('[TabSearch][TST] Failed to get tree structure:', err);
-  });
-*/
-  // Also expand the tree for these tabs recursively
-  /*
-  browser.runtime.sendMessage(TST_ID, {
-    type: 'expand-tree',
-    tabs: tabIds,
-    recursively: true
-  }).then(() => {
-    console.log('[TabSearch][TST] Expanded tree for tabs', tabIds);
-  }).catch(err => {
-    console.warn('[TabSearch][TST] Failed to expand tree for tabs:', err);
-  });
-  */
 }
 
 function removeFlattenedState(tabId) {
@@ -118,29 +71,6 @@ function removeFlattenedState(tabId) {
     console.warn('[TabSearch][TST] Failed to remove flattened state:', err);
   });
 }
-// On extension startup, create a new tab, hide it, then close it (unless disabled by option)
-/*
-if (typeof browser !== 'undefined' && browser.tabs && browser.tabs.create && browser.tabs.hide && browser.tabs.remove && browser.storage && browser.storage.local) {
-  browser.storage.local.get(['disableEmptyTab']).then((items) => {
-    if (!items.disableEmptyTab) {
-      browser.tabs.create({active: false, url: 'about:blank'}).then((tab) => {
-        if (tab && typeof tab.id === 'number') {
-          // Give the tab a moment to initialize (especially in Firefox)
-          setTimeout(() => {
-            browser.tabs.hide([tab.id]).then(() => {
-              // After hiding, close the tab
-              setTimeout(() => {
-                browser.tabs.remove(tab.id);
-              }, 300);
-            });
-          }, 500);
-        }
-      });
-    }
-  });
-}
-*/
-
 
 // Hide and then show the last tab in the current window, only if the 4th option is disabled
 if (
@@ -165,9 +95,6 @@ if (
     }
   });
 }
-
-
-
 
 let lastHiddenTabIds = [];
 let progressInterval = null;

@@ -1,15 +1,13 @@
-// ...tab list code removed...
-
 // --- Monitor and React to All Option Changes ---
 function handleOptionChange() {
   // Reset the search input field
   document.getElementById('search').value = '';
   // Deselect all tabs in the browser (even if selectMatchingTabs is enabled)
   if (browser && browser.tabs && browser.tabs.query && browser.tabs.highlight) {
-    browser.tabs.query({currentWindow: true}, function(tabs) {
+    browser.tabs.query({ currentWindow: true }, function (tabs) {
       const activeTab = tabs.find(tab => tab.active);
       if (activeTab) {
-        browser.tabs.highlight({tabs: [activeTab.index]});
+        browser.tabs.highlight({ tabs: [activeTab.index] });
       }
       tabs.forEach(tab => {
         if (!tab.active && tab.highlighted) {
@@ -23,8 +21,6 @@ function handleOptionChange() {
     browser.runtime.sendMessage({ action: 'clear-matched-tabs' });
   }
 }
-
-// Audio search button handler
 
 // Audio search button handler
 function showNoAudioTabsMessage() {
@@ -65,8 +61,8 @@ function showNoAudioTabsMessage() {
   btn.className = 'primary-btn';
   btn.style.fontSize = '16px';
   btn.style.padding = '8px 24px';
-  btn.onclick = function() {
-    overlay.remove();
+  btn.onclick = function () {
+      overlay.remove();
   };
 
   overlay.appendChild(icon);
@@ -77,7 +73,7 @@ function showNoAudioTabsMessage() {
 
 function searchAudioTabs() {
   if (!browser || !browser.tabs) return;
-  browser.tabs.query({audible: true})
+  browser.tabs.query({ audible: true })
     .then((audibleTabs) => {
       if (audibleTabs.length === 0) {
         showNoAudioTabsMessage();
@@ -85,12 +81,12 @@ function searchAudioTabs() {
       }
       if (audibleTabs.length === 1) {
         // Only one tab playing audio: switch directly
-        browser.tabs.update(audibleTabs[0].id, {active: true});
+        browser.tabs.update(audibleTabs[0].id, { active: true });
         // Do NOT close the popup
         return;
       }
       // More than one: hide all other tabs (show only audible)
-      browser.tabs.query({currentWindow: true})
+      browser.tabs.query({ currentWindow: true })
         .then((allTabs) => {
           const audibleTabIds = audibleTabs.map(tab => tab.id);
           const toHide = allTabs.filter(tab => !tab.audible && !tab.pinned && !tab.active).map(tab => tab.id);
@@ -124,11 +120,10 @@ document.addEventListener('focusin', (e) => {
 });
 
 document.addEventListener('focusout', (e) => {
-    console.log('[TabSearch] focusout: document.activeElement:', document.activeElement, document.activeElement && document.activeElement.id);
-    
-    console.log('[TabSearch] focusout: Sending popup-closed message to background');
-    browser.runtime.sendMessage({ action: 'popup-closed' });
-
+  console.log('[TabSearch] focusout: document.activeElement:', document.activeElement, document.activeElement && document.activeElement.id);
+  
+  console.log('[TabSearch] focusout: Sending popup-closed message to background');
+  browser.runtime.sendMessage({ action: 'popup-closed' });
 });
 
 // Handle privacy info button click (must be in external JS due to CSP)
@@ -184,7 +179,6 @@ function updateSearchButtonState() {
   }
 }
 
-
 // Prevent form submit from reloading popup or resetting options
 document.getElementById('search-form').addEventListener('submit', function(e) {
   e.preventDefault();
@@ -235,7 +229,6 @@ window.addEventListener('DOMContentLoaded', function() {
       typeof items.realtimeSearch === 'undefined' &&
       typeof items.disableEmptyTab === 'undefined';
 
-
     let urlsChecked = allUndefined ? true : (typeof items.searchUrls === 'undefined' ? true : !!items.searchUrls);
     let titlesChecked = allUndefined ? true : (typeof items.searchTitles === 'undefined' ? true : !!items.searchTitles);
     let contentsChecked = allUndefined ? true : (typeof items.searchContents === 'undefined' ? true : !!items.searchContents); // default true
@@ -265,13 +258,8 @@ window.addEventListener('DOMContentLoaded', function() {
     }
     handleOptionChange();
   });
-// Load TST integration script
-const tstScript = document.createElement('script');
-tstScript.src = 'TST.js';
-tstScript.onload = function() { console.log('[TabSearch] TST.js loaded'); };
-document.head.appendChild(tstScript);
-    updateSearchButtonState();
 
+  updateSearchButtonState();
 
   searchInput = document.getElementById('search');
 
@@ -341,10 +329,6 @@ document.head.appendChild(tstScript);
         doSearch();
       }
     });
-
-    //searchInput.focus();
-    //searchInput.select();
-
   }
   });
 
@@ -358,6 +342,8 @@ document.head.appendChild(tstScript);
       selectMatchingTabs: document.getElementById('select-matching-tabs').checked
     });
   }
+
+  // Attach event listeners for all options
   document.getElementById('select-matching-tabs').addEventListener('change', function() {
     saveAllOptions();
     handleOptionChange();
