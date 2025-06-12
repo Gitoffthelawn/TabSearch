@@ -125,8 +125,6 @@ document.addEventListener('focusin', (e) => {
 
 document.addEventListener('focusout', (e) => {
     console.log('[TabSearch] focusout: document.activeElement:', document.activeElement, document.activeElement && document.activeElement.id);
-
-    console.log('[TabSearch] e:', e);
     
     console.log('[TabSearch] focusout: Sending popup-closed message to background');
     browser.runtime.sendMessage({ action: 'popup-closed' });
