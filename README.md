@@ -61,8 +61,21 @@
 
 <details id="History"><summary>History</summary>
 
+### v0.5.0
+- Added initial support for Tree Style Tab (TST)
+    - Interacts directly with TST to apply a flattening style to matched tabs while searching and to remove any twistys
+    - Expands all trees during the search to ensure visibility
+    - Restores the original state of tress (expanded/collapsed) after the search is complete
+- If options of the search are changed mid-search, the search is cleared and restarted
+    - Want consistent results and not have to worry if changing an option mid-search is logical or not
+- Disabled being able to use "tab" to switch between UI elements
+    - There is a Firefox limitation that popup.html can be destroyed too fast to generate an "unload" event to be processed
+    - Monitoring for "focusout" works well, but also included keyboard transitions to other UI elements
+- Added new option for TST to "auto-expand" trees if the option to "Select all matching tabs on close" is also enabled
+    - This would ensure you can visually find all the highlighted tabs even if they were buried in collapsed trees
+
 ### v0.4.1
-  - Fixed https://github.com/irvinm/TabSearch/issues/2
+  - Fixed [Select all matching tabs on close - Multiple windows not working](https://github.com/irvinm/TabSearch/issues/2)
     - Selecting matching tabs across multiple windows should now work
     - There is a Firefox limitation that dragging tabs has to be done PER window
 
