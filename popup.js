@@ -217,6 +217,12 @@ document.getElementById('search-btn').addEventListener('click', function(e) {
   doSearch();
 });
 
+// Prevent Tab key from changing focus between elements in the popup
+window.addEventListener('keydown', function(event) {
+  if (event.key === 'Tab') {
+    event.preventDefault();
+  }
+});
 
 // Attach all DOMContentLoaded logic in a single listener
 window.addEventListener('DOMContentLoaded', function() {
