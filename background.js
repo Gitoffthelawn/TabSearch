@@ -109,6 +109,8 @@ let originalTSTTreeStructureByWindow = {};
 let originalTSTTreeSnapshotTaken = false;
 // Flag to ensure TST is only registered once per session
 let tstRegistered = false;
+// Flag to ensure trees are only expanded once per window per search
+let treesExpandedThisSearch = {};
 
 function updateBadge(count) {
   browser.action.setBadgeText({ text: count > 0 ? String(count) : '' });
@@ -170,19 +172,22 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
           console.warn('[TabSearch][TST] Failed to get original tree structure:', e);
         }
       }
-      // Expand all trees for all tabs in all windows before search
+      // Expand all trees for all tabs in all windows before search (only once per window per search)
       const allWindows = await browser.windows.getAll();
       for (const win of allWindows) {
-        try {
-          await browser.runtime.sendMessage(TST_ID, {
-            type: 'expand-tree',
-            window: win.id,
-            tabs: '*',
-            recursively: true
-          });
-          console.log(`[TabSearch][TST] Expanded all trees in window ${win.id}`);
-        } catch (err) {
-          console.warn(`[TabSearch][TST] Failed to expand trees in window ${win.id}:`, err);
+        if (!treesExpandedThisSearch[win.id]) {
+          try {
+            await browser.runtime.sendMessage(TST_ID, {
+              type: 'expand-tree',
+              window: win.id,
+              tabs: '*',
+              recursively: true
+            });
+            console.log(`[TabSearch][TST] Expanded all trees in window ${win.id}`);
+            treesExpandedThisSearch[win.id] = true;
+          } catch (err) {
+            console.warn(`[TabSearch][TST] Failed to expand trees in window ${win.id}:`, err);
+          }
         }
       }
     }
@@ -380,6 +385,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       }
       originalTSTTreeStructureByWindow = {};
       originalTSTTreeSnapshotTaken = false;
+      treesExpandedThisSearch = {}; // Reset for next search
     }
     // Select all matching tabs if option is enabled
     const items = await browser.storage.local.get(["selectMatchingTabs", "tstSupport", "tstAutoExpand"]);
