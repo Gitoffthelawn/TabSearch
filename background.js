@@ -34,10 +34,12 @@ const TST_REGISTER_MESSAGE = {
 }
 
 function registerWithTST() {
+  if (tstRegistered) return;
   if (!browser || !browser.runtime || !browser.runtime.sendMessage) return;
   browser.runtime.sendMessage(TST_ID, TST_REGISTER_MESSAGE)
     .then(response => {
       console.log('[TabSearch][TST] Registered with TST:', response);
+      tstRegistered = true;
     })
     .catch(err => {
       console.warn('[TabSearch][TST] Could not register with TST:', err);
@@ -105,6 +107,8 @@ let lastMatchedTabIds = [];
 // Store the original TST tree structure for restoring after search, per window
 let originalTSTTreeStructureByWindow = {};
 let originalTSTTreeSnapshotTaken = false;
+// Flag to ensure TST is only registered once per session
+let tstRegistered = false;
 
 function updateBadge(count) {
   browser.action.setBadgeText({ text: count > 0 ? String(count) : '' });
