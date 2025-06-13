@@ -111,6 +111,8 @@ let originalTSTTreeSnapshotTaken = false;
 let tstRegistered = false;
 // Flag to ensure trees are only expanded once per window per search
 let treesExpandedThisSearch = {};
+// Flag to ensure flattened state is only added once per search
+let flattenedStateAppliedThisSearch = false;
 
 function updateBadge(count) {
   browser.action.setBadgeText({ text: count > 0 ? String(count) : '' });
@@ -172,6 +174,17 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
           console.warn('[TabSearch][TST] Failed to get original tree structure:', e);
         }
       }
+
+      // After all tab hiding/unhiding is complete, add flattened state to all visible tabs (TST)
+      if (!flattenedStateAppliedThisSearch) {
+        console.log('[TabSearch][TST] Adding flattened state to all tabs');
+        const allTabs = await browser.tabs.query({});
+        if (allTabs.length > 0) {
+          addFlattenedState(allTabs);
+        }
+        flattenedStateAppliedThisSearch = true;
+      }
+
       // Expand all trees for all tabs in all windows before search (only once per window per search)
       const allWindows = await browser.windows.getAll();
       for (const win of allWindows) {
@@ -301,14 +314,6 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     // If no tabs are hidden, consider search done
     if (toHide.length === 0 && toShow.length === 0) {
       searchInProgress = false;
-    }
-    // After all tab hiding/unhiding is complete, add flattened state to all visible tabs (TST)
-    if (tstEnabled) {
-      const allTabs = await browser.tabs.query({});
-      const visibleTabIds = allTabs.filter(tab => !tab.hidden).map(tab => tab.id);
-      if (visibleTabIds.length > 0) {
-        addFlattenedState(visibleTabIds);
-      }
     }
   }
   // Listen for popup closed event
