@@ -61,6 +61,13 @@
 
 <details id="History"><summary>History</summary>
 
+### v0.5.1
+- Performance improvements via reduced actions for TST
+    - (TST) Ensure register with TST only once per session
+    - (TST) Only "expand all trees" once per search per window
+    - (TST) Only apply "flatted" style once per search
+    - (TST) Refactor tree restoration process to only call parents, not every tab
+
 ### v0.5.0
 - Added initial support for Tree Style Tab (TST)
     - Interacts directly with TST to apply a flattening style to matched tabs while searching and to remove any twistys
