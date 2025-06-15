@@ -75,7 +75,7 @@ function removeFlattenedState(tabId) {
   flattenedStateAppliedThisSearch = false;
 }
 
-// Hide and then show the last tab in the current window, only if the 4th option is disabled
+// Hide and then show the last tab in the current window, only if "Disable initial hide option" is disabled
 if (
   typeof browser !== 'undefined' &&
   browser.tabs && browser.tabs.query && browser.tabs.hide && browser.tabs.show && browser.windows &&
