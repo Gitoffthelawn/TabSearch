@@ -61,6 +61,10 @@
 
 <details id="History"><summary>History</summary>
 
+### v0.5.2
+- Updated logic for tracking TST parents and tree states
+- Updated the logging to ensure "[TabSearch]" is included for all statements
+
 ### v0.5.1
 - Performance improvements via reduced actions for TST
     - (TST) Ensure register with TST only once per session
