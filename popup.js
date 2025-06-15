@@ -148,12 +148,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // Utility to get and set options in storage
 
 function saveOptions(options) {
-  console.log('Saving options:', options);
+  console.log('[TabSearch] Saving options:', options);
 
   if (browser && browser.storage && browser.storage.local) {
     browser.storage.local.set(options).then(
       () => {},
-      (err) => { console.error('Failed to save options:', err); }
+      (err) => { console.error('[TabSearch] Failed to save options:', err); }
     );
   }
 }
@@ -277,9 +277,9 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // If searchInput is not found, log an error and return
   if (!searchInput) {
-    console.error('Search input element not found');
+    console.error('[TabSearch] Search input element not found');
   } else {
-    console.log('Search input element found:', searchInput);
+    console.log('[TabSearch] Search input element found:', searchInput);
 
     // Robustly focus/select using MutationObserver with logging
     console.log('[TabSearch] About to robustly focus/select search input');

@@ -136,7 +136,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
   // Check if TST support is enabled
   const options = await browser.storage.local.get(['tstSupport']);
   const tstEnabled = options.tstSupport;
-  console.log('Received message:', msg, 'from sender:', sender);
+  console.log('[TabSearch] Received message:', msg, 'from sender:', sender);
 
   if (msg.action === 'clear-matched-tabs') {
     lastMatchedTabIds = [];
