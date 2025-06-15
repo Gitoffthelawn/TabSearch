@@ -104,16 +104,14 @@ let progressInterval = null;
 let tabsToProcess = 0;
 let searchInProgress = false;
 let lastMatchedTabIds = [];
-// Store the original TST tree structure for restoring after search, per window
-let originalTSTTreeStructureByWindow = {};
+let originalTSTTreeStructureByWindow = {};     // Store the original TST tree structure for restoring after search, per window
 let originalTSTTreeSnapshotTaken = false;
-// Flag to ensure TST is only registered once per session
-let tstRegistered = false;
-// Flag to ensure trees are only expanded once per window per search
-let treesExpandedThisSearch = {};
-// Flag to ensure flattened state is only added once per search
-let flattenedStateAppliedThisSearch = false;
+let tstRegistered = false;                     // Flag to ensure TST is only registered once per session
+let treesExpandedThisSearch = {};              // Flag to ensure trees are only expanded once per window per search
+let flattenedStateAppliedThisSearch = false;   // Flag to ensure flattened state is only added once per search
 let parents = {};
+let collapsedParents = {};
+let children = {};
 
 function updateBadge(count) {
   browser.action.setBadgeText({ text: count > 0 ? String(count) : '' });
@@ -163,17 +161,29 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
             if (tree !== null && tree !== undefined) {
               originalTSTTreeStructureByWindow[win.id] = tree;
 
-              // For each tab in treeInfo, check to see if each tab has any children by looking at its `children` property and if it has children check if any of the children have "subtree-collapsed" as part of their "states".  If any has this state, add the parent to a list of parents that will need to be collapsed.
+              // clear parents[win.id] and children[win.id] if they exist
+              if (!parents[win.id]) parents[win.id] = [];
+              if (!children[win.id]) children[win.id] = [];
+              if (!collapsedParents[win.id]) collapsedParents[win.id] = [];
+
+              // console.log(`[TabSearch][TST] PRE: Found ${parents[win.id].length} parent tabs in window ${win.id}`, parents[win.id].slice());
               for (const tab of originalTSTTreeStructureByWindow[win.id]) {
-                if (Array.isArray(tab.children) && tab.children.length > 0) {
-                  const hasCollapsedChild = tab.children.some(child => child.states && child.states.includes("subtree-collapsed"));
-                  if (hasCollapsedChild) {
-                    if (!parents[win.id]) parents[win.id] = [];
-                    parents[win.id].push(tab);
+                // Only push parent once, not per child
+                if (tab.children.length > 0) {
+                  parents[win.id].push(tab);
+                  // console.log(`[TabSearch][TST] Found parent tab in window ${win.id} - state is ${tab.states}: `, tab);
+                  if (tab.states && tab.states.includes("subtree-collapsed")) {
+                    collapsedParents[win.id].push(tab);
+                    // console.log(`[TabSearch][TST] Parent tab in window ${win.id} is collapsed: `, tab);
                   }
+                } else {
+                  children[win.id].push(tab);
                 }
               }
-              console.log(`[TabSearch][TST] Found ${parents[win.id].length} parent tabs with collapsed children in window ${win.id}`, parents[win.id]);
+              // Log the list of parents and children for debugging
+              console.log(`[TabSearch][TST] Found ${parents[win.id].length} parent tabs in window ${win.id}`, parents[win.id].slice());
+              console.log(`[TabSearch][TST] Found ${children[win.id].length} child tabs in window ${win.id}`, children[win.id].slice());
+              console.log(`[TabSearch][TST] Found ${collapsedParents[win.id].length} collapsed parent tabs in window ${win.id}`, collapsedParents[win.id].slice());
             } else {
               allValid = false;
               console.warn(`[TabSearch][TST] Received invalid tree structure for window ${win.id}:`, tree);
@@ -313,6 +323,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     // Hide tabs that don't match
     if (toHide.length > 0) {
       try {
+        console.log(`[TabSearch] Hiding ${toHide.length} tabs:`, toHide);
         await browser.tabs.hide(toHide);
       } catch (e) {}
     }
@@ -337,7 +348,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       const allTabIds = allTabs.map(tab => tab.id);
       removeFlattenedState(allTabIds);
     }
-    searchInProgress = false;
+
     // Always try to show all hidden tabs, even if lastHiddenTabIds is empty
     try {
       const allTabs = await browser.tabs.query({});
@@ -349,6 +360,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
           const tabsNow = await browser.tabs.query({});
           return tabsNow.filter(tab => tab.hidden).length;
         });
+        console.log(`[TabSearch] Showing ${hiddenTabIds.length} hidden tabs:`, hiddenTabIds);
         await browser.tabs.show(hiddenTabIds);
       } else {
         updateBadge(0);
@@ -368,35 +380,24 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     if (tstEnabled && originalTSTTreeSnapshotTaken && originalTSTTreeStructureByWindow) {
       try {
         for (const [windowId, treeStructure] of Object.entries(originalTSTTreeStructureByWindow)) {
-          // Fetch the latest tree info for all tabs in this window from TST
-          let treeInfo = [];
-          try {
-            treeInfo = await browser.runtime.sendMessage(TST_ID, {
-              type: 'get-light-tree',
-              tabs: '*',
-              window: Number(windowId)
-            });
-          } catch (e) {
-            console.warn(`[TabSearch][TST] Could not fetch tree info for window ${windowId}:`, e);
-            continue;
-          }
-
-          console.log(`[TabSearch][TST] Collapsed trees for tabs in window ${windowId}:`, parents[windowId]);
+          console.log(`[TabSearch][TST] Collapsing ${collapsedParents[windowId].length} trees in window ${windowId}:`, collapsedParents[windowId].slice());
           await browser.runtime.sendMessage(TST_ID, {
             type: 'collapse-tree',
             window: Number(windowId),
-            //tabs: toCollapse,
-            tabs: parents[windowId],
+            tabs: collapsedParents[windowId],
             recursively: false
           });
+          
+          // Clear the tracking arrays for this window
+          parents[windowId] = [];
+          children[windowId] = [];
+          collapsedParents[windowId] = [];
+          treesExpandedThisSearch[windowId] = {};
+          originalTSTTreeStructureByWindow[windowId] = treeStructure;
         }
       } catch (e) {
         console.warn('[TabSearch][TST] Failed to restore tree collapsed/expanded state:', e);
       }
-      originalTSTTreeStructureByWindow = {};
-      originalTSTTreeSnapshotTaken = false;
-      treesExpandedThisSearch = {}; // Reset for next search
-      parents = {}; // Reset parents for next search  
     }
 
     // Select all matching tabs if option is enabled
@@ -474,7 +475,15 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       // After handling, clear lastMatchedTabIds so it doesn't persist for next popup
       lastMatchedTabIds = [];
     }
+    // Reset all stateful objects to avoid stale data
     lastHiddenTabIds = [];
+    searchInProgress = false;
+    parents = {};
+    children = {};
+    collapsedParents = {};
+    treesExpandedThisSearch = {};
+    originalTSTTreeStructureByWindow = {};
+    originalTSTTreeSnapshotTaken = false;
   }
 });
 
