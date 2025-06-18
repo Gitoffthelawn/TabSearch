@@ -61,6 +61,11 @@
 
 <details id="History"><summary>History</summary>
 
+### v0.5.5
+- Fixed https://github.com/irvinm/TabSearch/issues/11.
+    - (General) Fixed issue where manually selecting a tab from a search would not make that tab the active tab.
+    - (TST) Fixed issue where manually selecting a tab that was in a collapsed tree would be selected, but when the tree was restored (collapsed), the parent ends up becoming the active tab.
+      
 ### v0.5.2
 - Updated logic for tracking TST parents and tree states
 - Updated the logging to ensure "[TabSearch]" is included for all statements
