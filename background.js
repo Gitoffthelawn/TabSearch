@@ -343,11 +343,15 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
   }  // Listen for popup closed event
   if (msg.action === 'popup-closed') {
 
-    // Check if there was a recent tab activation (within last 200ms)
+    // Sleep for 250ms to allow any pending tab updates to complete
+    // Firefox seems to need a small delay here in case new tab is activated
+    await new Promise(resolve => setTimeout(resolve, 250));
+
+    // Check if there was a recent tab activation (within last 500ms)
     // This handles race conditions where onActivated might fire before or after popup-closed
     const now = Date.now();
     const wasRecentActivation = recentTabActivation && 
-                                (now - recentTabActivation.timestamp) < 200;
+                                (now - recentTabActivation.timestamp) < 500;
     
     if (wasRecentActivation) {
       console.log('[TabSearch] Recent tab activation detected:', recentTabActivation.tabId);
