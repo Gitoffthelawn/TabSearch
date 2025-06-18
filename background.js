@@ -112,6 +112,7 @@ let flattenedStateAppliedThisSearch = false;   // Flag to ensure flattened state
 let parents = {};
 let collapsedParents = {};
 let children = {};
+let recentTabActivation = null;  // Track recent tab activations with timestamp
 
 function updateBadge(count) {
   browser.action.setBadgeText({ text: count > 0 ? String(count) : '' });
@@ -339,19 +340,31 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     if (toHide.length === 0 && toShow.length === 0) {
       searchInProgress = false;
     }
-  }
-  // Listen for popup closed event
+  }  // Listen for popup closed event
   if (msg.action === 'popup-closed') {
+
+    // Check if there was a recent tab activation (within last 200ms)
+    // This handles race conditions where onActivated might fire before or after popup-closed
+    const now = Date.now();
+    const wasRecentActivation = recentTabActivation && 
+                                (now - recentTabActivation.timestamp) < 200;
+    
+    if (wasRecentActivation) {
+      console.log('[TabSearch] Recent tab activation detected:', recentTabActivation.tabId);
+    } else {
+      console.log('[TabSearch] No recent tab activation, user likely clicked away');
+    }
+    
+    const allTabs = await browser.tabs.query({});
+
     // If TST support is enabled, remove flattened state from all tabs in one call
     if (tstEnabled) {
-      const allTabs = await browser.tabs.query({});
       const allTabIds = allTabs.map(tab => tab.id);
       removeFlattenedState(allTabIds);
     }
 
     // Always try to show all hidden tabs, even if lastHiddenTabIds is empty
     try {
-      const allTabs = await browser.tabs.query({});
       const hiddenTabIds = allTabs.filter(tab => tab.hidden).map(tab => tab.id);
       if (hiddenTabIds.length > 0) {
         // Start progress indicator for unhiding
@@ -375,18 +388,100 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
         clearInterval(progressInterval);
         progressInterval = null;
       }
-    }
-    // Now restore the collapsed/expanded state of trees
+    }    // Now restore the collapsed/expanded state of trees
     if (tstEnabled && originalTSTTreeSnapshotTaken && originalTSTTreeStructureByWindow) {
       try {
-        for (const [windowId, treeStructure] of Object.entries(originalTSTTreeStructureByWindow)) {
-          console.log(`[TabSearch][TST] Collapsing ${collapsedParents[windowId].length} trees in window ${windowId}:`, collapsedParents[windowId].slice());
-          await browser.runtime.sendMessage(TST_ID, {
-            type: 'collapse-tree',
-            window: Number(windowId),
-            tabs: collapsedParents[windowId],
-            recursively: false
-          });
+        // Determine which tab should be kept visible
+        let tabToKeepVisible = null;
+        
+        if (wasRecentActivation) {
+          // User clicked on a specific tab - keep that tab visible
+          tabToKeepVisible = recentTabActivation.tabId;
+          console.log(`[TabSearch][TST] Will preserve visibility for manually selected tab: ${tabToKeepVisible}`);
+        } else {
+          // User clicked away - use currently active tab in each window (existing behavior)
+          console.log('[TabSearch][TST] Will preserve visibility for currently active tabs');
+        }
+
+        // First, identify which tab is currently active in each window (for click-away scenario)
+        const activeTabsByWindow = {};
+        const allWindows = await browser.windows.getAll({ populate: false });
+        for (const window of allWindows) {
+          const tabsInWindow = await browser.tabs.query({ windowId: window.id, active: true });
+          if (tabsInWindow.length > 0) {
+            activeTabsByWindow[window.id] = tabsInWindow[0].id;
+          }
+        }        for (const [windowId, treeStructure] of Object.entries(originalTSTTreeStructureByWindow)) {
+          // Determine which tab to preserve visibility for in this window
+          let tabIdToPreserve;
+          
+          if (wasRecentActivation && recentTabActivation.windowId === Number(windowId)) {
+            // This is the window where the user manually selected a tab
+            tabIdToPreserve = recentTabActivation.tabId;
+            console.log(`[TabSearch][TST] Window ${windowId}: Will preserve manually selected tab ${tabIdToPreserve}`);
+          } else {
+            // For other windows, preserve the currently active tab
+            tabIdToPreserve = activeTabsByWindow[windowId];
+            if (tabIdToPreserve) {
+              console.log(`[TabSearch][TST] Window ${windowId}: Will preserve currently active tab ${tabIdToPreserve}`);
+            }
+          }
+          
+          let parentsToKeepExpanded = new Set();
+          
+          // If there's a tab to preserve in this window, check if it would be hidden by collapsing trees
+          if (tabIdToPreserve && collapsedParents[windowId] && collapsedParents[windowId].length > 0) {
+            // Get current tree structure to find the tab's ancestors
+            try {
+              const currentTree = await browser.runtime.sendMessage(TST_ID, {
+                type: 'get-light-tree',
+                tabs: '*',
+                window: Number(windowId)
+              });
+                if (currentTree && Array.isArray(currentTree)) {
+                const tabIdToNode = {};
+                currentTree.forEach(node => { tabIdToNode[node.id] = node; });
+                const tabNode = tabIdToNode[tabIdToPreserve];
+                
+                console.log(`[TabSearch][TST] Window ${windowId}: Looking for tab ${tabIdToPreserve} in tree`);
+                console.log(`[TabSearch][TST] Window ${windowId}: Tab node found:`, tabNode ? `Yes (ancestors: ${tabNode.ancestorTabIds})` : 'No');
+                
+                if (tabNode && tabNode.ancestorTabIds && tabNode.ancestorTabIds.length > 0) {
+                  // Check if any of the tab's ancestors are in the list of parents to collapse
+                  const collapsedParentIds = collapsedParents[windowId].map(parent => parent.id);
+                  console.log(`[TabSearch][TST] Window ${windowId}: Originally collapsed parent IDs:`, collapsedParentIds);
+                  console.log(`[TabSearch][TST] Window ${windowId}: Tab ${tabIdToPreserve} ancestor IDs:`, tabNode.ancestorTabIds);
+                  
+                  for (const ancestorId of tabNode.ancestorTabIds) {
+                    if (collapsedParentIds.includes(ancestorId)) {
+                      parentsToKeepExpanded.add(ancestorId);
+                      console.log(`[TabSearch][TST] Window ${windowId}: Keeping parent ${ancestorId} expanded to preserve visibility of tab ${tabIdToPreserve}`);
+                    }
+                  }
+                } else {
+                  console.log(`[TabSearch][TST] Window ${windowId}: Tab ${tabIdToPreserve} has no ancestors or is not in a tree`);
+                }
+              }
+            } catch (e) {
+              console.warn('[TabSearch][TST] Failed to get current tree structure for tab visibility check:', e);
+            }
+          }
+            // Filter out parents that should be kept expanded to preserve tab visibility
+          const parentsToCollapse = collapsedParents[windowId].filter(parent => !parentsToKeepExpanded.has(parent.id));
+          
+          if (parentsToCollapse.length > 0) {
+            console.log(`[TabSearch][TST] Window ${windowId}: Collapsing ${parentsToCollapse.length} trees (keeping ${parentsToKeepExpanded.size} expanded for tab ${tabIdToPreserve})`);
+            console.log(`[TabSearch][TST] Window ${windowId}: Parents to collapse:`, parentsToCollapse.map(p => p.id));
+            console.log(`[TabSearch][TST] Window ${windowId}: Parents to keep expanded:`, Array.from(parentsToKeepExpanded));
+            await browser.runtime.sendMessage(TST_ID, {
+              type: 'collapse-tree',
+              window: Number(windowId),
+              tabs: parentsToCollapse,
+              recursively: false
+            });
+          } else {
+            console.log(`[TabSearch][TST] Window ${windowId}: No trees to collapse (all ${collapsedParents[windowId].length} kept expanded for tab ${tabIdToPreserve})`);
+          }
           
           // Clear the tracking arrays for this window
           parents[windowId] = [];
@@ -474,8 +569,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       }
       // After handling, clear lastMatchedTabIds so it doesn't persist for next popup
       lastMatchedTabIds = [];
-    }
-    // Reset all stateful objects to avoid stale data
+    }    // Reset all stateful objects to avoid stale data
     lastHiddenTabIds = [];
     searchInProgress = false;
     parents = {};
@@ -484,36 +578,17 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     treesExpandedThisSearch = {};
     originalTSTTreeStructureByWindow = {};
     originalTSTTreeSnapshotTaken = false;
+    recentTabActivation = null;  // Clear the recent activation tracking
   }
 });
 
-// Listen for tab activation to restore hidden tabs
-browser.tabs.onActivated.addListener(async (activeInfo) => {
-  if (!searchInProgress && lastHiddenTabIds.length > 0) {
-    try {
-      const allTabs = await browser.tabs.query({});
-      const hiddenTabIds = allTabs.filter(tab => tab.hidden).map(tab => tab.id);
-      if (hiddenTabIds.length > 0) {
-        updateBadge(hiddenTabIds.length);
-        startProgressIndicator(async () => {
-          const tabsNow = await browser.tabs.query({});
-          return tabsNow.filter(tab => tab.hidden).length;
-        });
-        await browser.tabs.show(hiddenTabIds);
-      } else {
-        updateBadge(0);
-        if (progressInterval) {
-          clearInterval(progressInterval);
-          progressInterval = null;
-        }
-      }
-    } catch (e) {
-      updateBadge(0);
-      if (progressInterval) {
-        clearInterval(progressInterval);
-        progressInterval = null;
-      }
-    }
-    lastHiddenTabIds = [];
-  }
+// Listen for tab activation changes - this helps us know when a user manually clicks a tab
+browser.tabs.onActivated.addListener((activeInfo) => {
+  // Track recent tab activations with timestamp
+  recentTabActivation = {
+    tabId: activeInfo.tabId,
+    windowId: activeInfo.windowId,
+    timestamp: Date.now()
+  };
+  console.log('[TabSearch] Tab activated:', activeInfo.tabId, 'in window', activeInfo.windowId);
 });
