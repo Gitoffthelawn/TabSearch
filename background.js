@@ -309,16 +309,22 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
               children[win.id] = [];
               collapsedParents[win.id] = [];
 
-              for (const tab of tree) {
-                if (tab.children.length > 0) {
-                  parents[win.id].push(tab);
-                  if (tab.states && tab.states.includes("subtree-collapsed")) {
-                    collapsedParents[win.id].push(tab);
+              // Recursively traverse the TST tree so nested parents/collapsed
+              // subtrees at any depth are correctly recorded.
+              function walkTree(nodes) {
+                for (const node of nodes) {
+                  if (node.children && node.children.length > 0) {
+                    parents[win.id].push(node);
+                    if (node.states && node.states.includes('subtree-collapsed')) {
+                      collapsedParents[win.id].push(node);
+                    }
+                    walkTree(node.children);
+                  } else {
+                    children[win.id].push(node);
                   }
-                } else {
-                  children[win.id].push(tab);
                 }
               }
+              walkTree(tree);
               console.log(`[TabSearch][TST] Window ${win.id}: Found ${parents[win.id].length} parents, ${collapsedParents[win.id].length} collapsed.`);
             } else {
               allValid = false;
