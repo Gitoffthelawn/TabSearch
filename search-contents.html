@@ -1,38 +1,127 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tab Search - Content Search Info</title>
+  <meta charset="UTF-8">
+  <title>Search Contents - TabSearch</title>
+  <link rel="icon" type="image/png" href="images/search32.png">
   <link rel="stylesheet" href="common.css">
+  <style>
+    :root {
+      --bg-color: #fcfdfe;
+      --card-bg: #ffffff;
+      --text-color: #222222;
+      --heading-color: #2366d1;
+      --accent-color: #2366d1;
+      --border-color: #eaf2fb;
+      --shadow-color: rgba(35, 102, 209, 0.08);
+      --table-header: #f7faff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #121212;
+        --card-bg: #1e1e1e;
+        --text-color: #e0e0e0;
+        --heading-color: #4d94ff;
+        --accent-color: #4d94ff;
+        --border-color: #333333;
+        --shadow-color: rgba(0, 0, 0, 0.4);
+        --table-header: #2d2d2d;
+      }
+    }
+
+    body {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.6;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .container {
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px var(--shadow-color);
+      border: 1px solid var(--border-color);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 2.2em;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 15px;
+      color: var(--heading-color);
+    }
+    h2 {
+      margin-top: 30px;
+      color: var(--heading-color);
+    }
+    .section-list {
+      padding-left: 20px;
+      margin: 15px 0;
+    }
+    .section-list li {
+      margin-bottom: 8px;
+    }
+    .footer-actions {
+      margin-top: 40px;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+    .secondary-btn {
+      background: var(--table-header);
+      color: var(--accent-color);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      padding: 10px 20px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: all 0.2s;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 15px;
+    }
+    .secondary-btn:hover {
+      background: var(--border-color);
+      border-color: var(--accent-color);
+    }
+    .note-box {
+      font-size: 0.95em;
+      opacity: 0.9;
+      margin-top: 20px;
+      padding: 15px;
+      border-left: 4px solid var(--accent-color);
+      background: var(--table-header);
+    }
+  </style>
 </head>
 <body>
-  <h1>Search Contents of Loaded Tabs</h1>
-  <div class="info-box">
-    <strong>How it works:</strong>
+  <div class="container">
+    <h1>Search Tab Contents</h1>
+    
+    <p>When you enable "Search contents of loaded tabs", the extension looks beyond just titles and URLs, searching the visible text inside each open tab.</p>
+
+    <h2>How it works</h2>
     <ul class="section-list">
-      <li>When you enable "Search contents of loaded tabs", the extension searches the visible text inside each open tab for your search term.</li>
-      <li>Tabs that contain the term remain visible; non-matching tabs are hidden.</li>
+      <li><strong>Precision:</strong> Matches your exact search term inside the page body.</li>
+      <li><strong>Minimum Length:</strong> Requires a minimum of <strong>3 characters</strong> to ensure performance and reduce false positives.</li>
+      <li><strong>Case Insensitive:</strong> Matches "Apple" even if you type "apple".</li>
     </ul>
 
-    <strong>Minimum Search Length:</strong>
-    <ul class="section-list">
-      <li>For performance and accuracy, content search requires a minimum of <b>3 characters</b> in your search term.</li>
-      <li>If you enter fewer than 3 characters and only content search is enabled, no tabs will be hidden or filtered.</li>
-    </ul>
+    <div class="note-box">
+      <strong>Limitations:</strong>
+      <ul class="section-list">
+        <li><strong>Regular Pages:</strong> Only works on standard web pages (not <code>about:blank</code>, settings, or PDF views).</li>
+        <li><strong>Loaded Tabs:</strong> Tabs that are currently "discarded" or unloaded cannot be searched until you click them to reload.</li>
+      </ul>
+    </div>
 
-    <strong>Related Setting:</strong>
-    <ul class="section-list">
-      <li>"Disable initial hide action" only controls a startup permission initialization step.</li>
-      <li>It does <b>not</b> change how content search matches tabs or filters results during a search.</li>
-    </ul>
-
-    <strong>Notes:</strong>
-    <ul class="section-list">
-      <li>Content search only works on regular web pages (not special pages like about:blank or browser settings).</li>
-      <li>Tabs that are unloaded (discarded) cannot be searched until they are loaded.</li>
-      <li>The search is case-insensitive.</li>
-    </ul>
+    <div class="footer-actions">
+      <button id="close-btn" class="secondary-btn">Close</button>
+    </div>
   </div>
-  <p><button id="close-btn" class="close-btn">Close</button></p>
   <script src="search-contents.js"></script>
 </body>
 </html>

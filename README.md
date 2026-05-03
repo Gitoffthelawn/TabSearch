@@ -11,6 +11,7 @@
 ### Core Search
 
 - Search open tabs by URL, title, or page content (text inside loaded tabs).
+- **Fuzzy Matching**: Powered by Fuse.js v7.3.0 with Token Search for superior multi-word matching (e.g., "Mail Google" finds "Google Mail") and a configurable threshold slider (0.0 to 1.0).
 - Hide all non-matching tabs for a focused search experience.
 - Tab hiding is temporary: all tabs are restored when the search is cleared or the popup is closed.
 - Never hides pinned or active tabs.
@@ -80,7 +81,7 @@
 
 - Content search only works on loaded, regular web pages (not special pages like about:blank or browser settings).
     - Tabs that are unloaded (discarded) cannot be searched until loaded.
-- Search is case-insensitive and uses simple substring matching (not true fuzzy search).
+- Search is case-insensitive. Standard search uses substring matching, while Fuzzy Matching uses Fuse.js.
 - Hiding or unhiding a large number of tabs may be slow, especially with many open tabs.
 - Uses the `tabs.hide()` API, which requires explicit user permission and may show a privacy dialog on first use.
     - [Mozilla Discourse Discussion](https://discourse.mozilla.org/t/initial-tabs-hide-warning-dialog/142979/4)
@@ -96,7 +97,7 @@
 
 - Initial use will trigger a Firefox privacy dialog about tab hiding (expected behavior).
     - If permission is not granted, the dialog may reappear and cause UI conflicts.
-- No fuzzy matching or typo tolerance (feature possibly planned).
+
 - Performance may degrade with very large tab sets.
 - Real-time searching may be slow on older or slower machines.
 - Does not detect if another extension is also using the `tabs.hide()` API (may cause conflicts).
@@ -111,6 +112,25 @@
 ## Changelog
 
 <details open>
+<summary><strong>v0.7.0 (2026-05-03) - Fuzzy Matching and Documentation Overhaul</strong></summary>
+
+- Added **Fuzzy Matching** powered by Fuse.js v7.3.0.
+    - Integrated **Token Search** for superior multi-word matching (e.g., searching "Mail Google" finds "Google Mail").
+    - Intelligent relevance ranking using BM25-style IDF weighting.
+    - User-configurable threshold slider (0.0 to 1.0) in the popup.
+    - Persisted settings across browser sessions.
+- Standardized Documentation & Guidance.
+    - Added theme-aware (Light/Dark mode) info pages for Fuzzy Matching, Privacy, and Search Contents.
+    - Standardized page titles and added addon favicons to all extension pages.
+- TST Hardening and Mitigations.
+    - Implemented mitigations for [Issue #13](https://github.com/irvinm/TabSearch/issues/13) regarding TST tree restoration reliability.
+    - Implemented state locking and robust error boundaries for TST communication.
+- UI/UX Refinements.
+    - Modernized all info pages with a unified card-based layout and standardized typography.
+    - Improved "Close Guide" button reliability across all help pages.
+</details>
+
+<details>
 <summary><strong>v0.6.0 (2026-04-25) - Popup UX and TST Improvements</strong></summary>
 
 - Clarified option reset behavior in the popup.

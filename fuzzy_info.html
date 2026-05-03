@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Fuzzy Matching - TabSearch</title>
+  <link rel="icon" type="image/png" href="images/search32.png">
+  <link rel="stylesheet" href="common.css">
+  <style>
+    :root {
+      --bg-color: #fcfdfe;
+      --card-bg: #ffffff;
+      --text-color: #222222;
+      --heading-color: #2366d1;
+      --accent-color: #2366d1;
+      --border-color: #eaf2fb;
+      --shadow-color: rgba(35, 102, 209, 0.08);
+      --table-header: #f7faff;
+      --example-bg: #fffbe6;
+      --example-border: #ffe58f;
+      --example-text: #1a2a3a;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-color: #121212;
+        --card-bg: #1e1e1e;
+        --text-color: #e0e0e0;
+        --heading-color: #4d94ff;
+        --accent-color: #4d94ff;
+        --border-color: #333333;
+        --shadow-color: rgba(0, 0, 0, 0.4);
+        --table-header: #2d2d2d;
+        --example-bg: #2d2600;
+        --example-border: #5c4d00;
+        --example-text: #e0e0e0;
+      }
+    }
+
+    body {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+      line-height: 1.6;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .container {
+      background: var(--card-bg);
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px var(--shadow-color);
+      border: 1px solid var(--border-color);
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 2.2em;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 15px;
+      color: var(--heading-color);
+    }
+    h2 {
+      color: var(--text-color);
+      margin-top: 30px;
+    }
+    .threshold-guide {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 25px 0;
+    }
+    .threshold-guide th, .threshold-guide td {
+      text-align: left;
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .threshold-guide th {
+      background: var(--table-header);
+      color: var(--accent-color);
+    }
+    .value-badge {
+      font-family: monospace;
+      background: var(--accent-color);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .footer-actions {
+      margin-top: 40px;
+      display: flex;
+      gap: 15px;
+    }
+    .secondary-btn {
+      background: var(--table-header);
+      color: var(--accent-color);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      padding: 10px 20px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: all 0.2s;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 15px;
+    }
+    .secondary-btn:hover {
+      background: var(--border-color);
+      border-color: var(--accent-color);
+    }
+    .example-box {
+      background: var(--example-bg);
+      border: 1px solid var(--example-border);
+      color: var(--example-text);
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Fuzzy Matching Guide</h1>
+    <p>
+      Fuzzy matching allows you to find tabs even if you have typos or only remember part of the title. 
+      It uses the powerful <strong>Fuse.js</strong> library to calculate how "close" your search term is to each tab.
+    </p>
+
+    <h2>The Threshold Slider</h2>
+    <p>
+      The threshold value determines how strict the search is. A lower value is more precise, while a higher value is more forgiving.
+    </p>
+
+    <table class="threshold-guide">
+      <thead>
+        <tr>
+          <th>Value</th>
+          <th>Strictness</th>
+          <th>Behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="value-badge">0.00</span></td>
+          <td>Exact</td>
+          <td>Only matches the exact sequence of letters. No typos allowed.</td>
+        </tr>
+        <tr>
+          <td><span class="value-badge">0.10</span></td>
+          <td>Strict</td>
+          <td>Handles minor typos (e.g., <em>"gogle"</em> will find <em>"Google"</em>).</td>
+        </tr>
+        <tr>
+          <td><span class="value-badge">0.35</span></td>
+          <td>Balanced</td>
+          <td><strong>Our Default.</strong> Recommended balance between precision and flexibility.</td>
+        </tr>
+        <tr>
+          <td><span class="value-badge">0.60</span></td>
+          <td>Loose</td>
+          <td>Very forgiving. Matches <em>"jav"</em> to <em>"TypeScript"</em>. Often too noisy.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note-box">
+      <strong>Pro Tip:</strong> If you find that random tabs are appearing in your results, try lowering the threshold to <strong>0.20</strong> or <strong>0.25</strong>.
+    </div>
+
+    <h2>Why am I seeing unrelated tabs?</h2>
+    <p>
+      Sometimes common words in URLs can trigger a match. For example, at higher thresholds:
+    </p>
+    <ul class="section-list">
+      <li>Searching for <strong>"twitch"</strong> might match a YouTube URL because it contains the word <strong>"watch"</strong> (both share the letters <em>w, t, c, h</em>) at our default <strong>0.35</strong> threshold, but it will be excluded if you lower the setting to <strong>0.30</strong>.</li>
+      <li>Searching for <strong>"github"</strong> might also return results for <strong>"gitlab"</strong> due to their similar structure.</li>
+    </ul>
+    <p>
+      If this happens frequently, lowering the threshold or unchecking <strong>Search URLs</strong> will provide much stricter results.
+    </p>
+
+    <h2>Technical Details</h2>
+    <p>
+      Fuzzy matching is currently applied to <strong>Tab Titles</strong> and <strong>URLs</strong>. 
+      Content search (searching inside the page) remains an exact-match search to ensure performance and accuracy.
+    </p>
+
+    <div class="footer-actions">
+      <button id="close-btn" class="secondary-btn">Close</button>
+      <a href="https://www.fusejs.io/fuzzy-search.html" target="_blank" class="secondary-btn">More Info on Fuse.js</a>
+    </div>
+  </div>
+  <script src="fuzzy_info.js"></script>
+</body>
+</html>

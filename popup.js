@@ -184,6 +184,13 @@ document.addEventListener('DOMContentLoaded', function() {
       await openInfoTab('search-contents.html');
     });
   }
+  var fuzzyBtn = document.getElementById('fuzzy-info-btn');
+  if (fuzzyBtn) {
+    fuzzyBtn.addEventListener('click', async function(e) {
+      e.preventDefault();
+      await openInfoTab('fuzzy_info.html');
+    });
+  }
 });
 // Utility to get and set options in storage
 
@@ -200,7 +207,7 @@ function saveOptions(options) {
 
 function loadOptions(callback) {
   if (browser && browser.storage && browser.storage.local) {
-    browser.storage.local.get(["searchUrls", "searchTitles", "searchContents", "realtimeSearch", "disableEmptyTab", "selectMatchingTabs", "tstSupport", "tstAutoExpand"]).then(callback);
+    browser.storage.local.get(["searchUrls", "searchTitles", "searchContents", "realtimeSearch", "fuzzySearch", "fuzzyThreshold", "disableEmptyTab", "selectMatchingTabs", "tstSupport", "tstAutoExpand"]).then(callback);
   }
 }
 
@@ -265,6 +272,8 @@ window.addEventListener('DOMContentLoaded', function() {
     let titlesChecked = allUndefined ? true : (typeof items.searchTitles === 'undefined' ? true : !!items.searchTitles);
     let contentsChecked = allUndefined ? true : (typeof items.searchContents === 'undefined' ? true : !!items.searchContents); // default true
     let realtimeChecked = allUndefined ? true : (typeof items.realtimeSearch === 'undefined' ? true : !!items.realtimeSearch);
+    let fuzzyChecked = allUndefined ? false : (typeof items.fuzzySearch === 'undefined' ? false : !!items.fuzzySearch);
+    let fuzzyThreshold = allUndefined ? 0.35 : (typeof items.fuzzyThreshold === 'undefined' ? 0.35 : parseFloat(items.fuzzyThreshold));
 
     let selectMatchingTabsChecked = allUndefined ? false : (typeof items.selectMatchingTabs === 'undefined' ? false : !!items.selectMatchingTabs);
     let disableEmptyTabChecked = allUndefined ? false : (typeof items.disableEmptyTab === 'undefined' ? false : !!items.disableEmptyTab);
@@ -275,6 +284,11 @@ window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('search-titles').checked = titlesChecked;
     document.getElementById('search-contents').checked = contentsChecked;
     document.getElementById('realtime-search').checked = realtimeChecked;
+    document.getElementById('fuzzy-search').checked = fuzzyChecked;
+    document.getElementById('fuzzy-threshold').value = fuzzyThreshold;
+    document.getElementById('threshold-value').textContent = fuzzyThreshold.toFixed(2);
+    document.getElementById('threshold-row').hidden = !fuzzyChecked;
+
     document.getElementById('select-matching-tabs').checked = selectMatchingTabsChecked;
     document.getElementById('disable-empty-tab').checked = disableEmptyTabChecked;
     document.getElementById('tst-support').checked = tstSupportChecked;
@@ -292,7 +306,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
     // If all were undefined, save the defaults so future loads are correct
     if (allUndefined) {
-      saveOptions({ searchUrls: true, searchTitles: true, searchContents: true, realtimeSearch: true, disableEmptyTab: false, selectMatchingTabs: false, tstSupport: false, tstAutoExpand: false });
+      saveOptions({ searchUrls: true, searchTitles: true, searchContents: true, realtimeSearch: true, fuzzySearch: false, fuzzyThreshold: 0.35, disableEmptyTab: false, selectMatchingTabs: false, tstSupport: false, tstAutoExpand: false });
     }
     document.getElementById('tst-support').addEventListener('change', function() {
       const checked = this.checked;
@@ -388,6 +402,8 @@ window.addEventListener('DOMContentLoaded', function() {
       searchTitles: document.getElementById('search-titles').checked,
       searchContents: document.getElementById('search-contents').checked,
       realtimeSearch: document.getElementById('realtime-search').checked,
+      fuzzySearch: document.getElementById('fuzzy-search').checked,
+      fuzzyThreshold: document.getElementById('fuzzy-threshold').value,
       disableEmptyTab: document.getElementById('disable-empty-tab').checked,
       selectMatchingTabs: document.getElementById('select-matching-tabs').checked,
       tstSupport: document.getElementById('tst-support').checked,
@@ -425,6 +441,19 @@ window.addEventListener('DOMContentLoaded', function() {
     updateSearchButtonState();
     handleOptionChange();
   });
+  document.getElementById('fuzzy-search').addEventListener('change', function() {
+    saveAllOptions();
+    document.getElementById('threshold-row').hidden = !this.checked;
+    handleOptionChange();
+  });
+  document.getElementById('fuzzy-threshold').addEventListener('input', function() {
+    document.getElementById('threshold-value').textContent = parseFloat(this.value).toFixed(2);
+  });
+  document.getElementById('fuzzy-threshold').addEventListener('change', function() {
+    saveAllOptions();
+    handleOptionChange();
+  });
+
   document.getElementById('disable-empty-tab').addEventListener('change', function() {
     saveAllOptions();
   });
@@ -436,9 +465,11 @@ function doSearch() {
   const searchTitles = document.getElementById('search-titles').checked;
   const searchContents = document.getElementById('search-contents').checked;
   const realtimeSearch = document.getElementById('realtime-search').checked;
+  const fuzzySearch = document.getElementById('fuzzy-search').checked;
+  const fuzzyThreshold = parseFloat(document.getElementById('fuzzy-threshold').value);
   if (!searchUrls && !searchTitles && !searchContents) return;
   if (term || realtimeSearch) {
-    browser.runtime.sendMessage({ action: 'search-tabs', term, searchUrls, searchTitles, searchContents });
+    browser.runtime.sendMessage({ action: 'search-tabs', term, searchUrls, searchTitles, searchContents, fuzzySearch, fuzzyThreshold });
     // Only close popup if not real-time
     if (!realtimeSearch) {
       // window.close(); // Optional: close popup after search

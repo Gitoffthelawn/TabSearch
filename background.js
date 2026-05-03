@@ -114,6 +114,7 @@ let searchInProgress = false;
 let lastMatchedTabIds = [];
 let originalTSTTreeStructureByWindow = {};     // Store the original TST tree structure for restoring after search, per window
 let originalTSTTreeSnapshotTaken = false;
+let snapshotInProgress = false;                // Flag to avoid concurrent snapshots
 let tstRegistered = false;                     // Flag to ensure TST is only registered once per session
 let treesExpandedThisSearch = {};              // Flag to ensure trees are only expanded once per window per search
 let flattenedStateAppliedThisSearch = false;   // Flag to ensure flattened state is only added once per search
@@ -260,6 +261,7 @@ function resetSearchTrackingState() {
   treesExpandedThisSearch = {};
   originalTSTTreeStructureByWindow = {};
   originalTSTTreeSnapshotTaken = false;
+  snapshotInProgress = false;
   flattenedStateAppliedThisSearch = false;
   recentTabActivation = null;
 }
@@ -288,7 +290,8 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       // Register with TST (only once per session)
       registerWithTST();
       // Only take a snapshot if we haven't already in this session
-      if (!originalTSTTreeSnapshotTaken) {
+      if (!originalTSTTreeSnapshotTaken && !snapshotInProgress) {
+        snapshotInProgress = true;
         try {
           const allWindows = await browser.windows.getAll();
           let allValid = true;
@@ -301,40 +304,35 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
             if (tree !== null && tree !== undefined) {
               originalTSTTreeStructureByWindow[win.id] = tree;
 
-              // clear parents[win.id] and children[win.id] if they exist
-              if (!parents[win.id]) parents[win.id] = [];
-              if (!children[win.id]) children[win.id] = [];
-              if (!collapsedParents[win.id]) collapsedParents[win.id] = [];
+              // Initialize/Reset tracking for this window
+              parents[win.id] = [];
+              children[win.id] = [];
+              collapsedParents[win.id] = [];
 
-              // console.log(`[TabSearch][TST] PRE: Found ${parents[win.id].length} parent tabs in window ${win.id}`, parents[win.id].slice());
-              for (const tab of originalTSTTreeStructureByWindow[win.id]) {
-                // Only push parent once, not per child
+              for (const tab of tree) {
                 if (tab.children.length > 0) {
                   parents[win.id].push(tab);
-                  // console.log(`[TabSearch][TST] Found parent tab in window ${win.id} - state is ${tab.states}: `, tab);
                   if (tab.states && tab.states.includes("subtree-collapsed")) {
                     collapsedParents[win.id].push(tab);
-                    // console.log(`[TabSearch][TST] Parent tab in window ${win.id} is collapsed: `, tab);
                   }
                 } else {
                   children[win.id].push(tab);
                 }
               }
-              // Log the list of parents and children for debugging
-              console.log(`[TabSearch][TST] Found ${parents[win.id].length} parent tabs in window ${win.id}`, parents[win.id].slice());
-              console.log(`[TabSearch][TST] Found ${children[win.id].length} child tabs in window ${win.id}`, children[win.id].slice());
-              console.log(`[TabSearch][TST] Found ${collapsedParents[win.id].length} collapsed parent tabs in window ${win.id}`, collapsedParents[win.id].slice());
+              console.log(`[TabSearch][TST] Window ${win.id}: Found ${parents[win.id].length} parents, ${collapsedParents[win.id].length} collapsed.`);
             } else {
               allValid = false;
               console.warn(`[TabSearch][TST] Received invalid tree structure for window ${win.id}:`, tree);
             }
-            if (allValid) {
-              originalTSTTreeSnapshotTaken = true;
-              console.log(`[TabSearch][TST] Snapshot of original tree structure for window ${win.id}:`, originalTSTTreeStructureByWindow[win.id]);
-            }
+          }
+          if (allValid) {
+            originalTSTTreeSnapshotTaken = true;
+            console.log(`[TabSearch][TST] Successfully snapshotted all windows.`);
           }
         } catch (e) {
           console.warn('[TabSearch][TST] Failed to get original tree structure:', e);
+        } finally {
+          snapshotInProgress = false;
         }
       }
 
@@ -348,23 +346,31 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
         flattenedStateAppliedThisSearch = true;
       }
 
-      // Expand all trees for all tabs in all windows before search (only once per window per search)
-      const allWindows = await browser.windows.getAll();
-      for (const win of allWindows) {
-        if (!treesExpandedThisSearch[win.id]) {
-          try {
-            await browser.runtime.sendMessage(TST_ID, {
-              type: 'expand-tree',
-              window: win.id,
-              tabs: '*',
-              recursively: true
-            });
-            console.log(`[TabSearch][TST] Expanded all trees in window ${win.id}`);
-            treesExpandedThisSearch[win.id] = true;
-          } catch (err) {
-            console.warn(`[TabSearch][TST] Failed to expand trees in window ${win.id}:`, err);
+      // Defensive check: only proceed with expansion if we successfully snapshotted the state
+      if (originalTSTTreeSnapshotTaken) {
+        // Expand all trees for all tabs in all windows before search (only once per window per search)
+        const allWindows = await browser.windows.getAll();
+        for (const win of allWindows) {
+          // Double check flag in case search was reset during window query
+          if (!originalTSTTreeSnapshotTaken) break;
+
+          if (!treesExpandedThisSearch[win.id]) {
+            try {
+              await browser.runtime.sendMessage(TST_ID, {
+                type: 'expand-tree',
+                window: win.id,
+                tabs: '*',
+                recursively: true
+              });
+              console.log(`[TabSearch][TST] Expanded all trees in window ${win.id}`);
+              treesExpandedThisSearch[win.id] = true;
+            } catch (err) {
+              console.warn(`[TabSearch][TST] Failed to expand trees in window ${win.id}:`, err);
+            }
           }
         }
+      } else {
+        console.warn('[TabSearch][TST] Skipping expansion: No valid snapshot of original state.');
       }
     }
 
@@ -373,6 +379,8 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
     const searchUrls = msg.searchUrls;
     const searchTitles = msg.searchTitles;
     const searchContents = msg.searchContents;
+    const fuzzySearch = msg.fuzzySearch;
+    const fuzzyThreshold = (msg.fuzzyThreshold !== undefined) ? msg.fuzzyThreshold : 0.35;
     const tabs = await browser.tabs.query({});
     let toHide = [];
     let toShow = [];
@@ -402,36 +410,56 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       return;
     }
     let matchedTabIds = [];
-    for (const tab of tabs) {
-      const title = (tab.title || '').toLowerCase();
-      const url = (tab.url || '').toLowerCase();
-      let matches = false;
-      if (searchTitles && title.includes(term)) matches = true;
-      if (searchUrls && url.includes(term)) matches = true;
-      // If not matched by title or url, and searchContents is enabled, try content search (only if term >= 3 chars)
-      if (!matches && searchContents && term.length >= 3 && tab.url && tab.url.startsWith('http')) {
-        try {
-          // Only works in Firefox and with proper permissions
-          const findResult = await browser.find.find(term, { tabId: tab.id, caseSensitive: false });
-          if (findResult && findResult.count && findResult.count > 0) {
-            matches = true;
-          }
-        } catch (e) {
-          // browser.find.find may fail on some tabs (e.g., special pages)
+
+    if (fuzzySearch && (searchTitles || searchUrls)) {
+      const fuseKeys = [];
+      if (searchTitles) fuseKeys.push('title');
+      if (searchUrls) fuseKeys.push('url');
+
+      const fuse = new Fuse(tabs, {
+        keys: fuseKeys,
+        threshold: fuzzyThreshold,
+        distance: 100,
+        ignoreLocation: true,
+        useTokenSearch: true
+      });
+
+      const results = fuse.search(term);
+      matchedTabIds = results.map(r => r.item.id);
+    } else {
+      for (const tab of tabs) {
+        const title = (tab.title || '').toLowerCase();
+        const url = (tab.url || '').toLowerCase();
+        let matches = false;
+        if (searchTitles && title.includes(term)) matches = true;
+        if (searchUrls && url.includes(term)) matches = true;
+        if (matches) matchedTabIds.push(tab.id);
+      }
+    }
+
+    // Parallel content search (not fuzzy)
+    if (searchContents && term.length >= 3) {
+      for (const tab of tabs) {
+        // Skip if already matched via title/url
+        if (matchedTabIds.includes(tab.id)) continue;
+        if (tab.url && tab.url.startsWith('http')) {
+          try {
+            const findResult = await browser.find.find(term, { tabId: tab.id, caseSensitive: false });
+            if (findResult && findResult.count && findResult.count > 0) {
+              matchedTabIds.push(tab.id);
+            }
+          } catch (e) {}
         }
       }
-      // Always allow title/url search for any non-empty term
-      // Only allow content search if term >= 3
-      if (
-        (searchTitles || searchUrls) ||
-        (searchContents && term.length >= 3)
-      ) {
-        if (matches) matchedTabIds.push(tab.id);
-        if (!matches && !tab.active && !tab.pinned) {
-          if (!tab.hidden) toHide.push(tab.id);
-        } else {
-          if (tab.hidden) toShow.push(tab.id);
-        }
+    }
+
+    // Determine final toHide and toShow lists based on matchedTabIds
+    for (const tab of tabs) {
+      const isMatch = matchedTabIds.includes(tab.id);
+      if (!isMatch && !tab.active && !tab.pinned) {
+        if (!tab.hidden) toHide.push(tab.id);
+      } else {
+        if (tab.hidden) toShow.push(tab.id);
       }
     }
     lastMatchedTabIds = matchedTabIds;
