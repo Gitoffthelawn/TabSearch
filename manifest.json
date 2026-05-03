@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Tab Search",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Search tabs and hide non-matching ones.",
   "permissions": ["tabs", "tabHide", "storage", "find"],
   "host_permissions": ["<all_urls>"],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["fuse.basic.min.js", "background.js"]
   },
   "action": {
     "default_popup": "popup.html",

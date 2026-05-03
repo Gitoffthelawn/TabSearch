@@ -7,13 +7,14 @@ Find tabs fast by title, URL, or page text. Tab Search temporarily hides non-mat
 Instead of scanning dozens (or hundreds) of tabs, type a search term and Tab Search temporarily hides non-matching tabs so you can focus on what matters. When the search ends, your tabs are restored.
 
 **What you can do**
-- Search open tabs by URL
-- Search open tabs by tab title
-- Search loaded page text (content search)
+- Search open tabs by URL, title, or page text (content search)
+- **Fuzzy matching**: Typo-tolerant search with multi-word support (Powered by Fuse.js v7.3.0)
+- User-configurable fuzzy matching threshold slider
 - Use real-time filtering while typing, or manual search
 - Find tabs currently playing audio
 - Optionally select all matches when the search session ends
 - See progress on the toolbar badge while tabs are being processed
+- Theme-responsive documentation and help guides
 
 **Tree Style Tab support (optional)**
 - Works with [Tree Style Tab](https://addons.mozilla.org/en-US/firefox/addon/tree-style-tab/)
@@ -30,7 +31,7 @@ Instead of scanning dozens (or hundreds) of tabs, type a search term and Tab Sea
 **Important notes**
 - Content search works on loaded, regular web pages
 - Content search requires at least 3 characters
-- Search is case-insensitive substring matching (not fuzzy matching)
+- Supports both standard substring matching and typo-tolerant fuzzy matching
 
 **Support and source**
 - Source and issues: [GitHub - irvinm/TabSearch](https://github.com/irvinm/TabSearch)
