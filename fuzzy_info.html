@@ -166,6 +166,23 @@
       <strong>Pro Tip:</strong> If you find that random tabs are appearing in your results, try lowering the threshold to <strong>0.20</strong> or <strong>0.25</strong>.
     </div>
 
+    <h2>Multi-Word Search (Token Search)</h2>
+    <p>
+      Starting in <strong>v0.7.0</strong>, we use <strong>Token Search</strong>. This allows you to search for multiple keywords in any order, and we will find tabs that contain all of them.
+    </p>
+    <div class="example-box">
+      <strong>Example:</strong> Searching for <code>"Mail Google"</code> will correctly find your <code>"Google Mail"</code> tab.
+    </div>
+    <p>
+      Each word in your search is also <strong>fuzzy matched individually</strong>. This means you can have typos in multiple words and still find the right tab.
+    </p>
+    <div class="example-box">
+      <strong>Example:</strong> Searching for <code>"Gogle Mail"</code> (even with typos in both words) will still find your <code>"Google Mail"</code> tab at our default threshold.
+    </div>
+    <p>
+      This feature uses the <strong>BM25 ranking algorithm</strong> to ensure the most relevant tabs appear first, regardless of the word order in the title or URL.
+    </p>
+
     <h2>Why am I seeing unrelated tabs?</h2>
     <p>
       Sometimes common words in URLs can trigger a match. For example, at higher thresholds:
@@ -180,7 +197,7 @@
 
     <h2>Technical Details</h2>
     <p>
-      Fuzzy matching is currently applied to <strong>Tab Titles</strong> and <strong>URLs</strong>. 
+      Fuzzy matching is powered by <strong>Fuse.js v7.3.0</strong> and is applied to <strong>Tab Titles</strong> and <strong>URLs</strong>. 
       Content search (searching inside the page) remains an exact-match search to ensure performance and accuracy.
     </p>
 
