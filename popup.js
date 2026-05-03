@@ -444,14 +444,24 @@ window.addEventListener('DOMContentLoaded', function() {
   document.getElementById('fuzzy-search').addEventListener('change', function() {
     saveAllOptions();
     document.getElementById('threshold-row').hidden = !this.checked;
-    handleOptionChange();
+    const currentQuery = document.getElementById('search').value;
+    if (currentQuery) {
+      doSearch();
+    } else {
+      handleOptionChange();
+    }
   });
   document.getElementById('fuzzy-threshold').addEventListener('input', function() {
     document.getElementById('threshold-value').textContent = parseFloat(this.value).toFixed(2);
   });
   document.getElementById('fuzzy-threshold').addEventListener('change', function() {
     saveAllOptions();
-    handleOptionChange();
+    const currentQuery = document.getElementById('search').value;
+    if (currentQuery) {
+      doSearch();
+    } else {
+      handleOptionChange();
+    }
   });
 
   document.getElementById('disable-empty-tab').addEventListener('change', function() {
