@@ -112,6 +112,27 @@
 ## Changelog
 
 <details open>
+<summary><strong>v0.7.1 (2026-07-04) - TST State Restoration Hardening and Permission Verification</strong></summary>
+
+- **Tab Hide Permission Verification UI/UX**:
+    - Added a user-friendly permission warning banner (`.permission-banner` with interactive controls) to `popup.html` when the `tabHide` browser permission is not yet active/confirmed.
+    - Prompts the user to trigger the Firefox native permission doorhanger and guides them to choose "Keep" (allow).
+    - **Deferred Verification**: Triggered only upon the first time the user opens the extension popup (clicking the addon icon) rather than at installation or startup, ensuring a non-intrusive install experience.
+    - Integrates background verification check (`check-tabhide-permission` action) that programmatically verifies permission status using a temporary tab.
+- **TST State Restoration Hardening** (mitigating [Issue #13](https://github.com/irvinm/TabSearch/issues/13) race conditions):
+    - **State Locking (`snapshotInProgress`)**: Added module-level lock to ensure atomic TST state capture and prevent overwriting clean snapshots.
+    - **Persistence Tracking (`originalTSTTreeSnapshotTaken`)**: Tracks pre-search tree states to prevent trying to restore un-snapshotted states.
+    - **Error Boundaries (`try...finally`)**: Wrapped all main TST orchestration blocks to guarantee state tracking resets even on communication failures.
+    - **Delayed Restoration & Activation Grace Window**: Handles Firefox out-of-order events upon popup close and preserves branch expansion for the newly activated tab.
+    - **Search Operation Queue (`pendingSearchMsg`)**: Intercepts and queues rapid keyboard input to ensure search operations run sequentially and cleanly.
+    - **Empty Search Term Restoration**: Triggers immediate restoration of tree states when the search input is cleared/emptied, even if the popup remains open.
+    - **Awaiting Active Searches on Reset/Close**: Cancels pending search requests and awaits active search completion with a 5-second timeout safeguard to eliminate race conditions.
+</details>
+
+
+
+
+<details>
 <summary><strong>v0.7.0 (2026-05-03) - Fuzzy Matching and Documentation Overhaul</strong></summary>
 
 - Added **Fuzzy Matching** powered by Fuse.js v7.3.0.
