@@ -1,0 +1,9 @@
+{
+  "name": "tab_search",
+  "version": "0.7.1",
+  "private": true,
+  "description": "Search tabs and hide non-matching ones.",
+  "scripts": {
+    "build": "npx web-ext build"
+  }
+}
