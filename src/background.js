@@ -87,29 +87,84 @@ function removeFlattenedState(tabId) {
   flattenedStateAppliedThisSearch = false;
 }
 
-// Hide and then show the last tab in the current window, only if "Disable initial hide option" is disabled
-if (
-  typeof browser !== 'undefined' &&
-  browser.tabs && browser.tabs.query && browser.tabs.hide && browser.tabs.show && browser.windows &&
-  browser.storage && browser.storage.local
-) {
-  browser.storage.local.get(['disableEmptyTab']).then((items) => {
-    if (!items.disableEmptyTab) {
-      browser.windows.getCurrent().then((win) => {
-        browser.tabs.query({windowId: win.id}).then((tabs) => {
-          if (tabs.length > 0) {
-            const lastTab = tabs[tabs.length - 1];
-            browser.tabs.hide([lastTab.id]).then(() => {
+function verifyTabHidePermission(force = false) {
+  if (
+    typeof browser === 'undefined' || 
+    !browser.tabs || !browser.tabs.hide || !browser.tabs.show || !browser.tabs.query || !browser.windows ||
+    !browser.storage || !browser.storage.local
+  ) {
+    return Promise.resolve(false);
+  }
+
+  return browser.storage.local.get(['tabHideConfirmed', 'disableEmptyTab']).then((items) => {
+    if (items.tabHideConfirmed && !force) {
+      console.log('[TabSearch] tabHide permission already confirmed.');
+      return true;
+    }
+    if (items.disableEmptyTab && !force) {
+      console.log('[TabSearch] Startup tabHide check disabled by user setting.');
+      return false;
+    }
+
+    console.log('[TabSearch] Verifying tabHide permission...');
+    return browser.windows.getCurrent().then((win) => {
+      const queryInfo = win && win.id ? { windowId: win.id } : {};
+      return browser.tabs.query(queryInfo).then((tabs) => {
+        if (tabs.length === 0) {
+          return false;
+        }
+
+        // Find a tab we can safely hide (must not be active, and must not be pinned)
+        const targetTab = tabs.find(t => !t.active && !t.pinned);
+        let checkPromise;
+        let isTemp = false;
+
+        if (targetTab) {
+          checkPromise = Promise.resolve(targetTab);
+        } else {
+          // If no safe tab, create a temporary one in the background
+          isTemp = true;
+          const createInfo = win && win.id ? { active: false, windowId: win.id } : { active: false };
+          checkPromise = browser.tabs.create(createInfo);
+        }
+
+        return checkPromise.then((tab) => {
+          return browser.tabs.hide([tab.id]).then(() => {
+            console.log('[TabSearch] tabHide permission is active.');
+            // Only persist confirmation when explicitly triggered by user (force=true)
+            // The startup check triggers the doorhanger but doesn't mark as confirmed,
+            // so the popup banner will appear if the user dismissed the doorhanger.
+            if (force) {
+              browser.storage.local.set({ tabHideConfirmed: true });
+            }
+            if (isTemp) {
+              browser.tabs.remove(tab.id).catch(() => {});
+            } else {
               setTimeout(() => {
-                browser.tabs.show([lastTab.id]);
-              }, 500);
-            });
-          }
+                browser.tabs.show([tab.id]).catch(err => {
+                  console.warn('[TabSearch] Failed to show verified tab:', err);
+                });
+              }, 200);
+            }
+            return true;
+          }).catch((err) => {
+            console.warn('[TabSearch] tabHide permission is NOT active:', err);
+            browser.storage.local.set({ tabHideConfirmed: false });
+            if (isTemp) {
+              browser.tabs.remove(tab.id).catch(() => {});
+            }
+            return false;
+          });
         });
       });
-    }
+    });
+  }).catch((err) => {
+    console.error('[TabSearch] Error in verifyTabHidePermission:', err);
+    return false;
   });
 }
+
+// Note: tabHide permission verification is triggered on first popup open, not on startup.
 
 let lastHiddenTabIds = [];
 let progressInterval = null;
@@ -501,6 +556,10 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
   if (msg.action === 'clear-matched-tabs') {
     lastMatchedTabIds = [];
     return;
+  }
+
+  if (msg.action === 'check-tabhide-permission') {
+    return await verifyTabHidePermission(msg.force || false);
   }
 
   if (msg.action === 'reset-search-state') {

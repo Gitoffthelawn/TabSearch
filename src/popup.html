@@ -5,6 +5,16 @@
   <link rel="stylesheet" href="common.css">
 </head>
 <body>
+  <div id="permission-warning" class="permission-banner" hidden>
+    <div class="permission-message">
+      ⚠️ <strong>Permission needed to hide tabs.</strong>
+      <span id="permission-guidance" class="permission-guidance" hidden>Firefox will ask you to confirm this. Please click "Keep" when prompted.</span>
+    </div>
+    <div class="permission-actions">
+      <button id="grant-permission-btn" type="button" class="grant-btn">Enable Tab Hiding</button>
+      <a id="permission-help-link" href="privacy.html" target="_blank" class="help-link">Why?</a>
+    </div>
+  </div>
   <form id="search-form" autocomplete="off">
     <div class="search-bar">
       <input id="search" type="text" placeholder="Search term ...">

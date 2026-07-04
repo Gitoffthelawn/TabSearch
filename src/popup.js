@@ -470,7 +470,82 @@ window.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('disable-empty-tab').addEventListener('change', function() {
     saveAllOptions();
+    checkTabHidePermission(false);
   });
+
+  // Check tabHide permission status
+  function checkTabHidePermission(force = false) {
+    const warningBanner = document.getElementById('permission-warning');
+    const grantBtn = document.getElementById('grant-permission-btn');
+    if (!warningBanner || !grantBtn) return;
+
+    browser.storage.local.get(['disableEmptyTab']).then((items) => {
+      if (items.disableEmptyTab && !force) {
+        warningBanner.hidden = true;
+        return;
+      }
+
+      browser.runtime.sendMessage({ action: 'check-tabhide-permission', force: force })
+        .then((isGranted) => {
+          if (isGranted) {
+            warningBanner.hidden = true;
+          } else {
+            // Recheck storage in case it changed
+            browser.storage.local.get(['disableEmptyTab']).then((innerItems) => {
+              if (innerItems.disableEmptyTab && !force) {
+                warningBanner.hidden = true;
+              } else {
+                warningBanner.hidden = false;
+              }
+            });
+          }
+        })
+        .catch((err) => {
+          console.warn('[TabSearch] Failed to check tabHide permission:', err);
+          // Fallback: check storage before showing warning
+          browser.storage.local.get(['disableEmptyTab']).then((innerItems) => {
+            if (innerItems.disableEmptyTab && !force) {
+              warningBanner.hidden = true;
+            } else {
+              warningBanner.hidden = false;
+            }
+          });
+        });
+    });
+  }
+
+  // Bind grant button click
+  const grantBtn = document.getElementById('grant-permission-btn');
+  if (grantBtn) {
+    grantBtn.addEventListener('click', function() {
+      const guidance = document.getElementById('permission-guidance');
+      grantBtn.disabled = true;
+      grantBtn.textContent = 'Checking...';
+      if (guidance) guidance.hidden = false;
+
+      // Force verification which triggers the browser prompt
+      browser.runtime.sendMessage({ action: 'check-tabhide-permission', force: true })
+        .then((isGranted) => {
+          grantBtn.disabled = false;
+          grantBtn.textContent = 'Enable Tab Hiding';
+          if (guidance) guidance.hidden = true;
+
+          if (isGranted) {
+            const warningBanner = document.getElementById('permission-warning');
+            if (warningBanner) warningBanner.hidden = true;
+          }
+        })
+        .catch((err) => {
+          console.warn('[TabSearch] Error during permission verification:', err);
+          grantBtn.disabled = false;
+          grantBtn.textContent = 'Enable Tab Hiding';
+          if (guidance) guidance.hidden = true;
+        });
+    });
+  }
+
+  // Perform initial check on startup
+  checkTabHidePermission(false);
 });
 
 function doSearch() {

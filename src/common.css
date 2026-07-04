@@ -182,3 +182,93 @@ code {
   font-weight: bold;
   min-width: 25px;
 }
+
+/* Permission Warning Banner */
+.permission-banner {
+  background: #fff3cd;
+  border: 2px solid #ffeeba;
+  border-left: 6px solid #ffc107;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  color: #856404;
+  font-family: inherit;
+  font-size: 14px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.permission-banner[hidden] {
+  display: none !important;
+}
+.permission-message {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.permission-guidance {
+  display: block;
+  font-size: 12px;
+  color: #b07000;
+  margin-top: 4px;
+  font-style: italic;
+}
+.permission-guidance[hidden] {
+  display: none !important;
+}
+.permission-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.grant-btn {
+  background: #2366d1;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.grant-btn:hover {
+  background: #174a99;
+}
+.grant-btn:disabled {
+  background: #b3d1f7;
+  cursor: not-allowed;
+}
+.help-link {
+  color: #2366d1;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: bold;
+}
+.help-link:hover {
+  text-decoration: underline;
+}
+
+@media (prefers-color-scheme: dark) {
+  .permission-banner {
+    background: #2b220d;
+    border-color: #4a3b18;
+    border-left-color: #ffc107;
+    color: #ffd885;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  .permission-guidance {
+    color: #ffbe4d;
+  }
+  .grant-btn {
+    background: #4d94ff;
+    color: #121212;
+  }
+  .grant-btn:hover {
+    background: #357ae8;
+  }
+  .grant-btn:disabled {
+    background: #233a59;
+    color: #666;
+  }
+  .help-link {
+    color: #4d94ff;
+  }
+}
