@@ -21,6 +21,7 @@ Instead of scanning dozens (or hundreds) of tabs, type a search term and Tab Sea
 - Flattens matched tabs during search for faster scanning
 - Restores your original tree state after search
 - Optional auto-expand behavior for matched tabs in close-time multi-select workflows
+- Robust, hardened state restoration to prevent race conditions during rapid typing or popup closing
 
 **Privacy and permissions (plain language)**
 - This extension uses Firefox tab APIs to hide/show tabs during search
