@@ -217,6 +217,7 @@ code {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 10px;
 }
 .grant-btn {
   background: #2366d1;
