@@ -226,12 +226,6 @@ if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.onStart
         if (items[STORAGE_KEY_TST_SEARCH_STATE]) {
           console.log('[TabSearch] Detected dangling search state on startup; restoring tabs...');
           await restoreTabsToInitialState();
-        } else if (browser.tabs && browser.tabs.query) {
-          const allTabs = await browser.tabs.query({}).catch(() => []);
-          if (allTabs.some(t => t.hidden)) {
-            console.log('[TabSearch] Detected hidden tabs on startup without state; restoring...');
-            await restoreTabsToInitialState();
-          }
         }
 
         if (!items.disableEmptyTab && !items.virtualDashboard) {

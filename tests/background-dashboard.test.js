@@ -357,6 +357,34 @@ test('runtime.onStartup skips tab hiding when virtualDashboard is true', async (
   assert.equal(calls.removed.length, 0);
 });
 
+test('runtime.onStartup does not unhide hidden tabs if TabSearch saved search state is absent', async () => {
+  const { calls, events } = loadBackground({
+    storageGet: async () => ({ virtualDashboard: false, disableEmptyTab: true }),
+    queryTabs: async () => [{ id: 10, hidden: true }],
+    createTab: async (createProperties) => ({ id: 55, windowId: 7, ...createProperties })
+  });
+
+  await events.startup.listener();
+
+  assert.equal(calls.shown.length, 0, 'Must not unhide tabs managed by other extensions');
+});
+
+test('runtime.onStartup restores tabs if TabSearch saved search state is present', async () => {
+  const { calls, events } = loadBackground({
+    storageGet: async () => ({
+      virtualDashboard: false,
+      disableEmptyTab: true,
+      tstActiveSearchState: { active: true }
+    }),
+    queryTabs: async () => [{ id: 10, hidden: true }],
+    createTab: async (createProperties) => ({ id: 55, windowId: 7, ...createProperties })
+  });
+
+  await events.startup.listener();
+
+  assert.deepEqual(plain(calls.shown), [[10]]);
+});
+
 test('popup-closed triggers tab hiding via temporary tab when disableEmptyTab is not checked and virtualDashboard is false', async () => {
   const { calls, events } = loadBackground({
     storageGet: async () => ({ virtualDashboard: false, disableEmptyTab: false }),
