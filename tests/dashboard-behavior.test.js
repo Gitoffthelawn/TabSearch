@@ -17,6 +17,15 @@ function loadDashboard(options = {}) {
     tabUpdates: [],
     windowUpdates: []
   };
+  const listeners = {
+    onActivated: [],
+    onAttached: [],
+    onCreated: [],
+    onDetached: [],
+    onMoved: [],
+    onRemoved: [],
+    onUpdated: []
+  };
   const browser = {
     find: {
       find: async (term, findOptions) => {
@@ -41,7 +50,14 @@ function loadDashboard(options = {}) {
       remove: async (tabId) => { calls.removed.push(tabId); },
       update: async (tabId, updateProperties) => {
         calls.tabUpdates.push([tabId, updateProperties]);
-      }
+      },
+      onActivated: { addListener: (fn) => listeners.onActivated.push(fn) },
+      onAttached: { addListener: (fn) => listeners.onAttached.push(fn) },
+      onCreated: { addListener: (fn) => listeners.onCreated.push(fn) },
+      onDetached: { addListener: (fn) => listeners.onDetached.push(fn) },
+      onMoved: { addListener: (fn) => listeners.onMoved.push(fn) },
+      onRemoved: { addListener: (fn) => listeners.onRemoved.push(fn) },
+      onUpdated: { addListener: (fn) => listeners.onUpdated.push(fn) }
     },
     windows: {
       getCurrent: async () => ({ id: options.activeWindowId || 1 }),
@@ -59,7 +75,7 @@ function loadDashboard(options = {}) {
     setTimeout
   });
   vm.runInContext(DASHBOARD_SOURCE, context, { filename: 'search-results.js' });
-  return { calls, context };
+  return { calls, context, listeners };
 }
 
 function dashboardFunction(context, functionName) {
@@ -142,6 +158,104 @@ test('performSearch caches content search results and avoids rescanning when que
   await dashboardFunction(context, 'performSearch')();
   assert.equal(calls.find.length, 2, 'Content search must not re-scan tabs when query is unchanged');
   assert.deepEqual(dashboardState(context).matchedTabs.map(t => t.id), [2]);
+});
+
+test('performSearch invalidates cached content match when matching tab navigates to a new URL', async () => {
+  const tabs = [
+    { id: 1, windowId: 1, title: 'Alpha', url: 'https://example.com/alpha' },
+    { id: 2, windowId: 1, title: 'Beta', url: 'https://example.com/beta' }
+  ];
+  let betaHasMatch = true;
+  const calls = { find: [] };
+  const { context, listeners } = loadDashboard({
+    tabs,
+    currentTab: null,
+    find: async (term, { tabId, caseSensitive }) => {
+      calls.find.push([term, { tabId, caseSensitive }]);
+      if (tabId === 2 && betaHasMatch) {
+        return { count: 1 };
+      }
+      return { count: 0 };
+    }
+  });
+  context.captureRender = () => {};
+  vm.runInContext("currentQuery = 'testquery'; searchContents = true; searchTitles = false; searchUrls = false; renderResults = captureRender", context);
+
+  // Initial search: tab 2 matches via content
+  await dashboardFunction(context, 'performSearch')();
+  assert.equal(calls.find.length, 2);
+  assert.deepEqual(dashboardState(context).matchedTabs.map(t => t.id), [2]);
+
+  // Tab 2 navigates to a new URL where it no longer contains matching content
+  betaHasMatch = false;
+  tabs[1].url = 'https://example.com/beta-navigated';
+  listeners.onUpdated.forEach(fn => fn(2, { url: 'https://example.com/beta-navigated' }));
+
+  // Re-run search with unchanged query: should re-scan only tab 2 and remove it from matchedTabs
+  await dashboardFunction(context, 'performSearch')();
+  assert.equal(calls.find.length, 3, 'Must scan only the navigated tab');
+  assert.equal(calls.find[2][1].tabId, 2);
+  assert.deepEqual(dashboardState(context).matchedTabs.map(t => t.id), []);
+});
+
+test('performSearch scans newly created and loaded tabs without rescanning existing cached tabs', async () => {
+  const tabs = [
+    { id: 1, windowId: 1, title: 'Alpha', url: 'https://example.com/alpha' }
+  ];
+  const calls = { find: [] };
+  const { context, listeners } = loadDashboard({
+    tabs,
+    currentTab: null,
+    find: async (term, { tabId, caseSensitive }) => {
+      calls.find.push([term, { tabId, caseSensitive }]);
+      return { count: 1 };
+    }
+  });
+  context.captureRender = () => {};
+  vm.runInContext("currentQuery = 'testquery'; searchContents = true; searchTitles = false; searchUrls = false; renderResults = captureRender", context);
+
+  // Initial search: tab 1 is scanned and matches
+  await dashboardFunction(context, 'performSearch')();
+  assert.equal(calls.find.length, 1);
+  assert.deepEqual(dashboardState(context).matchedTabs.map(t => t.id), [1]);
+
+  // A new tab is created and finishes loading
+  const newTab = { id: 2, windowId: 1, title: 'New Tab', url: 'https://example.com/new' };
+  tabs.push(newTab);
+  listeners.onCreated.forEach(fn => fn(newTab));
+  listeners.onUpdated.forEach(fn => fn(2, { status: 'complete' }));
+
+  // Re-run search: query is unchanged, tab 1 remains cached, only tab 2 is scanned
+  await dashboardFunction(context, 'performSearch')();
+  assert.equal(calls.find.length, 2, 'Only newly loaded tab should be scanned');
+  assert.equal(calls.find[1][1].tabId, 2);
+  assert.deepEqual(dashboardState(context).matchedTabs.map(t => t.id), [1, 2]);
+});
+
+test('performSearch cleans up cached matches when a matching tab is closed', async () => {
+  const tabs = [
+    { id: 1, windowId: 1, title: 'Alpha', url: 'https://example.com/alpha' },
+    { id: 2, windowId: 1, title: 'Beta', url: 'https://example.com/beta' }
+  ];
+  const { context, listeners } = loadDashboard({
+    tabs,
+    currentTab: null,
+    find: async (term, { tabId }) => ({ count: tabId === 2 ? 1 : 0 })
+  });
+  context.captureRender = () => {};
+  vm.runInContext("currentQuery = 'testquery'; searchContents = true; searchTitles = false; searchUrls = false; renderResults = captureRender", context);
+
+  // Initial search: tab 2 matches
+  await dashboardFunction(context, 'performSearch')();
+  assert.deepEqual(dashboardState(context).matchedTabs.map(t => t.id), [2]);
+
+  // Tab 2 is closed
+  tabs.splice(1, 1);
+  listeners.onRemoved.forEach(fn => fn(2));
+
+  // Re-run search
+  await dashboardFunction(context, 'performSearch')();
+  assert.deepEqual(dashboardState(context).matchedTabs.map(t => t.id), []);
 });
 
 test('loadStoredOptions applies persisted booleans, threshold, keep-open, and collapsed windows', async () => {

@@ -23,6 +23,7 @@ let currentDashboardTabId = null;
 let activeSearchId = 0;
 let lastContentSearchQuery = '';
 let lastContentMatchedTabIds = new Set();
+let unscannedContentTabIds = new Set();
 
 /**
  * Resolves the effective theme ('dark' or 'light') based on explicit user preference or system color scheme.
@@ -207,6 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!searchContents) {
       lastContentSearchQuery = '';
       lastContentMatchedTabIds.clear();
+      unscannedContentTabIds.clear();
     }
     browser.storage.local.set({ searchContents });
     if (currentQuery.trim() || (!searchUrls && !searchTitles && !searchContents)) {
@@ -658,20 +660,23 @@ async function performSearch() {
 
     // Optional page content search with bounded concurrency
     if (term && searchContents && term.length >= 3 && browser.find && browser.find.find) {
-      if (term === lastContentSearchQuery) {
-        const existingMatchedIds = new Set(matchedTabs.map(t => t.id));
-        for (const tab of allTabs) {
-          if (!existingMatchedIds.has(tab.id) && lastContentMatchedTabIds.has(tab.id)) {
-            matchedTabs.push(tab);
-          }
-        }
-      } else {
-        const thisSearchId = ++activeSearchId;
-        const candidateTabs = allTabs.filter(tab =>
-          !matchedTabs.some(t => t.id === tab.id) && tab.url && tab.url.startsWith('http')
-        );
+      const isNewQuery = term !== lastContentSearchQuery;
+      if (isNewQuery) {
+        lastContentSearchQuery = term;
+        lastContentMatchedTabIds.clear();
+        unscannedContentTabIds.clear();
+      }
 
-        const newContentMatchedIds = new Set();
+      // Candidate tabs: for new query, all unmatched http tabs; for unchanged query, only unscanned tabs
+      const candidateTabs = allTabs.filter(tab => {
+        if (matchedTabs.some(t => t.id === tab.id)) return false;
+        if (!tab.url || !tab.url.startsWith('http')) return false;
+        return isNewQuery || unscannedContentTabIds.has(tab.id);
+      });
+
+      // Scan candidate tabs in bounded batches of 6
+      if (candidateTabs.length > 0) {
+        const thisSearchId = ++activeSearchId;
         for (let i = 0; i < candidateTabs.length; i += CONTENT_SEARCH_BATCH_SIZE) {
           if (thisSearchId !== activeSearchId) {
             return;
@@ -682,7 +687,7 @@ async function performSearch() {
               try {
                 const findResult = await browser.find.find(term, { tabId: tab.id, caseSensitive: false });
                 if (findResult && findResult.count && findResult.count > 0) {
-                  return tab;
+                  return tab.id;
                 }
               } catch {
                 // Ignore find failures on unloaded/protected pages
@@ -696,19 +701,25 @@ async function performSearch() {
           }
 
           for (const res of results) {
-            if (res.status === 'fulfilled' && res.value) {
-              matchedTabs.push(res.value);
-              newContentMatchedIds.add(res.value.id);
+            if (res.status === 'fulfilled' && res.value !== null) {
+              lastContentMatchedTabIds.add(res.value);
             }
           }
         }
+        candidateTabs.forEach(t => unscannedContentTabIds.delete(t.id));
+      }
 
-        lastContentSearchQuery = term;
-        lastContentMatchedTabIds = newContentMatchedIds;
+      // Add all cached content matches that are currently open and not already matched by title/url
+      const currentMatchedIds = new Set(matchedTabs.map(t => t.id));
+      for (const tab of allTabs) {
+        if (!currentMatchedIds.has(tab.id) && lastContentMatchedTabIds.has(tab.id)) {
+          matchedTabs.push(tab);
+        }
       }
     } else {
       lastContentSearchQuery = '';
       lastContentMatchedTabIds.clear();
+      unscannedContentTabIds.clear();
     }
 
     // Determine active window ID to sort priority
@@ -1105,6 +1116,7 @@ if (typeof browser !== 'undefined' && browser.tabs) {
     browser.tabs.onRemoved.addListener((tabId) => {
       console.log('[TabSearch] Tab removed:', tabId);
       lastContentMatchedTabIds.delete(tabId);
+      unscannedContentTabIds.delete(tabId);
       scheduleSearch(50);
     });
   }
@@ -1113,6 +1125,7 @@ if (typeof browser !== 'undefined' && browser.tabs) {
   if (browser.tabs.onCreated) {
     browser.tabs.onCreated.addListener((tab) => {
       console.log('[TabSearch] Tab created:', tab.id);
+      unscannedContentTabIds.add(tab.id);
       scheduleSearch(100);
     });
   }
@@ -1122,6 +1135,13 @@ if (typeof browser !== 'undefined' && browser.tabs) {
     browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
       if (currentDashboardTabId && tabId === currentDashboardTabId) {
         return;
+      }
+      if (changeInfo.url) {
+        lastContentMatchedTabIds.delete(tabId);
+        unscannedContentTabIds.add(tabId);
+      }
+      if (changeInfo.status === 'complete') {
+        unscannedContentTabIds.add(tabId);
       }
       const isRelevant = changeInfo.url || changeInfo.title ||
         changeInfo.status === 'complete' ||
