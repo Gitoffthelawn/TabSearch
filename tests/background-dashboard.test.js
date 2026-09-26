@@ -344,9 +344,22 @@ test('runtime.onStartup skips tab hiding when disableEmptyTab is true', async ()
   assert.equal(calls.removed.length, 0);
 });
 
-test('popup-closed triggers tab hiding via temporary tab when disableEmptyTab is not checked', async () => {
+test('runtime.onStartup skips tab hiding when virtualDashboard is true', async () => {
   const { calls, events } = loadBackground({
     storageGet: async () => ({ virtualDashboard: true, disableEmptyTab: false }),
+    createTab: async (createProperties) => ({ id: 55, windowId: 7, ...createProperties })
+  });
+
+  await events.startup.listener();
+
+  assert.equal(calls.created.length, 0);
+  assert.equal(calls.hidden.length, 0);
+  assert.equal(calls.removed.length, 0);
+});
+
+test('popup-closed triggers tab hiding via temporary tab when disableEmptyTab is not checked and virtualDashboard is false', async () => {
+  const { calls, events } = loadBackground({
+    storageGet: async () => ({ virtualDashboard: false, disableEmptyTab: false }),
     createTab: async (createProperties) => ({ id: 88, windowId: 7, ...createProperties })
   });
 
@@ -359,7 +372,20 @@ test('popup-closed triggers tab hiding via temporary tab when disableEmptyTab is
 
 test('popup-closed skips tab hiding when disableEmptyTab is checked', async () => {
   const { calls, events } = loadBackground({
-    storageGet: async () => ({ virtualDashboard: true, disableEmptyTab: true }),
+    storageGet: async () => ({ virtualDashboard: false, disableEmptyTab: true }),
+    createTab: async (createProperties) => ({ id: 88, windowId: 7, ...createProperties })
+  });
+
+  await events.message.listener({ action: 'popup-closed' }, {});
+
+  assert.equal(calls.created.length, 0);
+  assert.equal(calls.hidden.length, 0);
+  assert.equal(calls.removed.length, 0);
+});
+
+test('popup-closed skips tab hiding when virtualDashboard is true', async () => {
+  const { calls, events } = loadBackground({
+    storageGet: async () => ({ virtualDashboard: true, disableEmptyTab: false }),
     createTab: async (createProperties) => ({ id: 88, windowId: 7, ...createProperties })
   });
 

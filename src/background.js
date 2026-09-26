@@ -222,7 +222,7 @@ if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.onStart
     if (browser.storage && browser.storage.local) {
       try {
         // Check for dangling hidden tabs or un-restored TST state from a browser crash/shutdown
-        const items = await browser.storage.local.get(['disableEmptyTab', STORAGE_KEY_TST_SEARCH_STATE]);
+        const items = await browser.storage.local.get(['disableEmptyTab', 'virtualDashboard', STORAGE_KEY_TST_SEARCH_STATE]);
         if (items[STORAGE_KEY_TST_SEARCH_STATE]) {
           console.log('[TabSearch] Detected dangling search state on startup; restoring tabs...');
           await restoreTabsToInitialState();
@@ -234,7 +234,7 @@ if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.onStart
           }
         }
 
-        if (!items.disableEmptyTab) {
+        if (!items.disableEmptyTab && !items.virtualDashboard) {
           await triggerInitialTabHide(false);
         }
       } catch (err) {
@@ -878,15 +878,17 @@ async function handlePopupClosed() {
 
     // Check if virtual dashboard mode is active, skip restoration if so
     let isVirtualDashboard = false;
+    let isDisableEmptyTab = false;
     try {
-      const items = await browser.storage.local.get(['virtualDashboard']);
+      const items = await browser.storage.local.get(['virtualDashboard', 'disableEmptyTab']);
       isVirtualDashboard = !!items.virtualDashboard;
+      isDisableEmptyTab = !!items.disableEmptyTab;
       if (isVirtualDashboard) {
         console.log('[TabSearch] popup-closed: Virtual dashboard mode active, skipping tab restoration');
         resetSearchTrackingState();
       }
     } catch (e) {
-      console.warn('[TabSearch] Failed to check virtualDashboard setting on popup-closed:', e);
+      console.warn('[TabSearch] Failed to check settings on popup-closed:', e);
     }
 
     if (!isVirtualDashboard) {
@@ -1009,14 +1011,13 @@ async function handlePopupClosed() {
       console.warn('[TabSearch] Error updating hasCompletedIntroPrompt on close:', err);
     }
 
-    // Trigger backup tab hide if disableEmptyTab is unchecked
-    try {
-      const items = await browser.storage.local.get(['disableEmptyTab']);
-      if (!items.disableEmptyTab) {
+    // Trigger backup tab hide if disableEmptyTab is unchecked and not in virtual dashboard mode
+    if (!isVirtualDashboard && !isDisableEmptyTab) {
+      try {
         await triggerInitialTabHide(false);
+      } catch (err) {
+        console.warn('[TabSearch] Error triggering initial tab hide on popup close:', err);
       }
-    } catch (err) {
-      console.warn('[TabSearch] Error triggering initial tab hide on popup close:', err);
     }
   } finally {
     setTimeout(() => {
