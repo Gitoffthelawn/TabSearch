@@ -246,3 +246,36 @@ test('activate-tab restores minimized parent window to normal state and focuses 
   assert.deepEqual(calls.windowUpdates, [{ windowId: 7, updateProperties: { focused: true, state: 'normal' } }]);
   assert.deepEqual(calls.tabUpdates, [{ tabId: 99, updateProperties: { active: true } }]);
 });
+
+test('tabs.onActivated auto-close ignores tab activation in a different window', async () => {
+  const { browser, calls, handleMessage, tabs } = loadBackground({ lastFocusedWindowId: 4 });
+  await handleMessage({ action: 'open-dashboard', query: '' }, {});
+
+  // Dashboard was created as tab 1 in window 4
+  assert.equal(calls.createdTabs.length, 1);
+  const dashboardTabId = 1;
+
+  // Simulate tab 50 activating in another window (window 9)
+  tabs.set(50, { id: 50, windowId: 9 });
+  await browser.tabs.onActivated.listeners[0]({ tabId: 50, windowId: 9 });
+
+  // Dashboard must NOT be closed
+  assert.equal(calls.removedTabs.length, 0);
+});
+
+test('tabs.onActivated auto-close closes dashboard when another tab in the same window is activated', async () => {
+  const { browser, calls, handleMessage, tabs } = loadBackground({ lastFocusedWindowId: 4 });
+  await handleMessage({ action: 'open-dashboard', query: '' }, {});
+
+  // Dashboard was created as tab 1 in window 4
+  assert.equal(calls.createdTabs.length, 1);
+  const dashboardTabId = 1;
+
+  // Simulate tab 50 activating in the SAME window (window 4)
+  tabs.set(50, { id: 50, windowId: 4 });
+  await browser.tabs.onActivated.listeners[0]({ tabId: 50, windowId: 4 });
+
+  // Dashboard MUST be closed
+  assert.deepEqual(calls.removedTabs, [dashboardTabId]);
+});
+

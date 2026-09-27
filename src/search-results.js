@@ -1199,14 +1199,14 @@ if (typeof browser !== 'undefined' && browser.tabs) {
     });
   }
 
-  // Automatically close dashboard when user activates another tab unless keepDashboardOpen is enabled
+  // Automatically close dashboard when user activates another tab in the same window unless keepDashboardOpen is enabled
   if (typeof browser !== "undefined" && browser.tabs && browser.tabs.onActivated) {
     browser.tabs.onActivated.addListener(async (activeInfo) => {
       if (keepDashboardOpen) return;
       try {
         const currentTab = await browser.tabs.getCurrent();
-        if (currentTab && activeInfo.tabId !== currentTab.id) {
-          console.log('[TabSearch] Another tab activated; closing dashboard tab', currentTab.id);
+        if (currentTab && activeInfo.tabId !== currentTab.id && activeInfo.windowId === currentTab.windowId) {
+          console.log('[TabSearch] Another tab in same window activated; closing dashboard tab', currentTab.id);
           await browser.tabs.remove(currentTab.id);
         }
       } catch (e) {

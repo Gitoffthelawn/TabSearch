@@ -321,3 +321,24 @@ test('activateTab falls back to direct Firefox APIs when runtime messaging is un
   assert.deepEqual(plain(calls.tabUpdates), [[23, { active: true }]]);
   assert.deepEqual(calls.removed, [99]);
 });
+
+test('dashboard onActivated listener ignores activations in other windows', async () => {
+  const { calls, listeners } = loadDashboard({
+    currentTab: { id: 99, windowId: 1 }
+  });
+
+  // Activation in a different window (window 2)
+  await listeners.onActivated[0]({ tabId: 5, windowId: 2 });
+  assert.equal(calls.removed.length, 0);
+});
+
+test('dashboard onActivated listener closes dashboard when another tab in same window activates', async () => {
+  const { calls, listeners } = loadDashboard({
+    currentTab: { id: 99, windowId: 1 }
+  });
+
+  // Activation in the same window (window 1)
+  await listeners.onActivated[0]({ tabId: 5, windowId: 1 });
+  assert.deepEqual(calls.removed, [99]);
+});
+

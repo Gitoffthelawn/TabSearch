@@ -1133,7 +1133,7 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
 });
 
 // Listen for tab activation changes - this helps us know when a user manually clicks a tab
-browser.tabs.onActivated.addListener((activeInfo) => {
+browser.tabs.onActivated.addListener(async (activeInfo) => {
   // Track recent tab activations with timestamp
   recentTabActivation = {
     tabId: activeInfo.tabId,
@@ -1142,16 +1142,20 @@ browser.tabs.onActivated.addListener((activeInfo) => {
   };
   console.log('[TabSearch] Tab activated:', activeInfo.tabId, 'in window', activeInfo.windowId);
 
-  // Close dashboard if user clicks off onto another tab and keepDashboardOpen is disabled
+  // Close dashboard if user clicks off onto another tab in the same window and keepDashboardOpen is disabled
   if (!isActivatingTab && dashboardTabId !== null && activeInfo.tabId !== dashboardTabId) {
-    browser.storage.local.get(['keepDashboardOpen']).then((items) => {
-      if (!items.keepDashboardOpen && !isActivatingTab && dashboardTabId !== null) {
-        browser.tabs.remove(dashboardTabId).catch(() => {});
-        dashboardTabId = null;
+    try {
+      const dashTab = await browser.tabs.get(dashboardTabId);
+      if (dashTab && dashTab.windowId === activeInfo.windowId) {
+        const items = await browser.storage.local.get(['keepDashboardOpen']);
+        if (!items.keepDashboardOpen && !isActivatingTab && dashboardTabId !== null) {
+          await browser.tabs.remove(dashboardTabId).catch(() => {});
+          dashboardTabId = null;
+        }
       }
-    }).catch((err) => {
-      console.warn('[TabSearch] Failed to check keepDashboardOpen on tab activation:', err);
-    });
+    } catch (err) {
+      console.warn('[TabSearch] Failed to check dashboard tab on activation:', err);
+    }
   }
 });
 
