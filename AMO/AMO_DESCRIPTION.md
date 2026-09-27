@@ -7,7 +7,7 @@ Find tabs fast by title, URL, or page text. View results in a dedicated Virtual 
 Whether you have dozens or hundreds of tabs across multiple windows, Tab Search lets you quickly find what you need. Choose between a dedicated **Virtual Search Results Dashboard** or classic **Tab Hiding** mode to streamline your browsing.
 
 **Two Ways to Search**
-- **Virtual Search Results Dashboard**: Consolidates matches from all windows into a single, clean dashboard tab. Groups tabs by window, supports instant jump/activation, keyboard navigation (Arrow Up/Down, Enter), collapsible window groups, and live sync as tabs open or close. Automatically closes when you switch away (or stays open if preferred). Displays clear "Pinned" badges for pinned tabs.
+- **Virtual Search Results Dashboard**: Consolidates matches from all windows into a single, clean dashboard tab. Ideal for multi-window workspaces wanting a unified view of search results, and for low-resource machines by eliminating the performance overhead of hiding and showing many tabs. Groups tabs by window, supports instant jump/activation, keyboard navigation (Arrow Up/Down, Enter), collapsible window groups, and live sync as tabs open or close. Automatically closes when you switch away (or stays open if preferred). Displays clear "Pinned" badges for pinned tabs.
 - **Tab Hiding Mode**: Temporarily hides non-matching tabs directly in your browser tab strip for a clutter-free view, then restores all tabs when your search ends.
 
 **What you can do**
@@ -28,10 +28,11 @@ Whether you have dozens or hundreds of tabs across multiple windows, Tab Search 
 - Visually flattens matched tabs during search for fast vertical scanning
 - Automatically restores original tree structure when the search concludes
 - Optional auto-expand for matched trees in multi-select workflows
-- Manifest V3 lifecycle resilience: maintains an active heartbeat while the popup is open to prevent premature background script suspension, backed by local storage rehydration so tree expand/collapse states are never lost
+- Background state reliability: maintains an active connection while the popup is open to prevent background suspension, backed by local storage rehydration so tree expand/collapse states are never lost
 
 **Privacy and permissions (plain language)**
 - Runs 100% locally in your browser; no data is ever collected or sent to external servers
+- Strictly minimal permissions: requests only essential tab and storage APIs; requires zero broad host permissions (`<all_urls>`) and has no access to browsing history, cookies, or credentials
 - Uses standard Firefox tab APIs to display or temporarily hide tabs during search
 - Hidden tabs are temporary and always restored after search
 - Firefox prompts for permission the first time tab hiding is activated; a guided welcome screen makes this setup effortless
@@ -44,4 +45,5 @@ Whether you have dozens or hundreds of tabs across multiple windows, Tab Search 
 
 **Support and source**
 - Source and issues: [GitHub - irvinm/TabSearch](https://github.com/irvinm/TabSearch)
+- Full changelog & release history: [README.md on GitHub](https://github.com/irvinm/TabSearch#changelog)
 

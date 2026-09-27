@@ -40,6 +40,7 @@
 
 ### Virtual Search Results Dashboard
 
+- **Ideal for Low-Resource Machines & Multi-Window Setups**: Designed specifically to provide a unified view of search results across multiple windows, while helping users on low-resource machines by eliminating the performance overhead of hiding and showing potentially many tabs.
 - Option to switch from traditional tab-hiding to a dedicated, consolidated search dashboard tab.
 - Groups matching tabs by browser window with the active window listed first.
 - Direct inline search refinement and real-time filtering without re-opening the popup.
@@ -83,7 +84,7 @@
 - Search contents of loaded tabs
 - Virtual search results dashboard
 - Real-time search
-- Fuzzy matching (titles & URLs)
+- Fuzzy matching (titles and URLs)
 - Support for Tree Style Tab (TST)
 - Auto-expand trees with matched tabs
 
@@ -135,85 +136,78 @@
 ## Changelog
 
 <details open>
-<summary><strong>v0.8.0.4 (2026-09-24) - Dark Theme Mode, Popup Layout Streamlining & Tree Sub-Options</strong></summary>
-
-- **Dark Theme Mode with Sun/Moon Toggle**:
-    - Added an accessible Sun/Moon toggle button to both the extension popup search bar and the Virtual Search Results Dashboard header.
-    - Allows users to seamlessly switch between light and dark modes with a single click.
-    - System-adaptive by default: Automatically follows the user's OS and Firefox dark mode preferences (`prefers-color-scheme: dark`) when unset, while honoring manual overrides via persistent local storage.
-- **Cross-View Real-Time Synchronization**:
-    - Toggling the theme from either the popup or the Virtual Dashboard instantly updates both interfaces in real time via `browser.storage.onChanged`.
-- **Theme-Aware UI Components**:
-    - Fully styled dark palette across all popup elements: search input, buttons, fieldsets, legends, range sliders, info SVGs, first-run permission onboarding screen, and the no-audio modal overlay.
-    - Configured `color-scheme: dark` / `color-scheme: light` to ensure native Firefox scrollbars and checkboxes adapt automatically.
-- **Popup Layout Streamlining & Dynamic Search Placeholder**:
-    - Removed the redundant "Search" submit button in favor of natural `Enter` key submission, keeping the popup compact and proportional (~330px–380px) alongside the theme toggle and audio buttons.
-    - Added context-aware placeholder text: automatically switches to `"Search Term"` during real-time filtering and `"Search Term (Press Enter)"` when manual searching or the Virtual Dashboard is active.
-- **Unified Sub-Option Tree Branches**:
-    - Extracted the Fuzzy matching threshold slider into its own dedicated sub-row to eliminate awkward text wrapping when fuzzy search is enabled.
-    - Unified visual tree branch styling (`└──`) for both Fuzzy matching and TST auto-expand options with clean vertical stems centered beneath parent checkboxes and safe stacking contexts.
-</details>
-
-<details>
-<summary><strong>v0.8.0.3 (2026-09-24) - Pinned Tab Visual Indicators & Documentation Updates</strong></summary>
-
-- **Pinned Tab Badges in Virtual Dashboard**: Displays an accessible "Pinned" badge with an authentic SVG pushpin icon on matching pinned tabs in the Virtual Search Results Dashboard.
-- **Clarified Firefox `tabs.hide()` Constraints**: Documented across `README.md`, `AMO_DESCRIPTION.md`, and `privacy.html` that Firefox strictly prohibits hiding pinned tabs and active tabs, explaining why non-matching pinned tabs remain visible in classic tab-hiding mode and how the Virtual Dashboard provides full visibility.
-</details>
-
-<details>
-<summary><strong>v0.8.0.2 (2026-09-22) - Virtual Search Results Dashboard, Permission Streamlining & MV3 TST Resilience</strong></summary>
+<summary><strong>v0.8.1 (2026-09-27) - Virtual Search Results Dashboard, Dark Theme Mode, Permission Streamlining & Background Script Reliability</strong></summary>
 
 ### Major Highlights
 
 1. **Virtual Search Results Dashboard**:
-   - A high-performance alternative to traditional tab-hiding, designed specifically for older or resource-constrained machines and heavy multi-window browsing sessions. Consolidates all matching tabs across all windows into a single, clean dashboard tab without triggering mass tab strip reflows.
-2. **New Post-Install Onboarding & Permission Flow**:
-   - A redesigned, elegant first-run experience to help Firefox grant the native `tabHide` permission. Rather than triggering tab-hiding unexpectedly on install, TabSearch displays an onboarding guide in the popup on first click, clearly explaining the Firefox permission requirement and instructing users to choose "Keep tabs hidden" before safely invoking the permission prompt.
-3. **Permission Streamlining & Least Privilege Security**:
-   - Eliminated unused `host_permissions: ["<all_urls>"]` from `manifest.json`. This stops Firefox from showing the persistent green attention dot under the toolbar icon on startup, eliminates unnecessary optional permission warnings ("Access your data for all websites" and "Access local files on your computer") in `about:addons`, and ensures TabSearch strictly requests only the minimal permissions required (`tabs`, `tabHide`, `storage`, `find`).
-4. **TST Tree Visibility & State Restoration Resilience (Manifest V3 Lifecycle Fixes)**:
-   - Fixed two lingering issues with Tree Style Tab (TST) integration where tree visibility and expanded/collapsed branch states were occasionally lost or corrupted. Because Manifest V3 aggressively unloads background scripts after 30 seconds of inactivity, TST hierarchy snapshots and search locks are now persisted directly into local storage for seamless state rehydration, backed by an active popup-lifecycle heartbeat to eliminate race conditions.
+   - A high-performance alternative to traditional tab-hiding, designed specifically for heavy multi-window browsing sessions and older or resource-constrained machines.
+   - Consolidates all matching tabs across all windows into a single, dedicated dashboard tab (`search-results.html`) without triggering mass tab strip reflows or hiding tabs in background windows.
+   - Includes real-time inline query refinement, collapsible window sections with saved state, full keyboard traversal (Arrow Up/Down, Enter), and instant tab/window jump with automatic restoration of minimized windows.
+   - Displays clear "Pinned" badges on matching pinned tabs to preserve visibility while honoring Firefox platform constraints.
+2. **Dark Theme Mode with Sun/Moon Toggle**:
+   - Added an accessible Sun/Moon icon toggle button to both the extension popup search bar and the Virtual Search Results Dashboard header.
+   - Full real-time bidirectional synchronization: toggling the theme in either view instantly updates both interfaces.
+   - System-adaptive: automatically follows the user's OS / Firefox dark mode preference (`prefers-color-scheme: dark`) when unset, while honoring manual overrides via persistent local storage.
+3. **Popup Layout Streamlining & Dynamic Guidance**:
+   - Redesigned search bar with natural `Enter` key submission, eliminating redundant buttons while keeping the popup compact alongside theme and audio controls.
+   - Contextual placeholder text dynamically indicates active search mode (`"Search Term"` during real-time filtering vs. `"Search Term (Press Enter)"` for manual or dashboard execution).
+   - Visual tree branch connectors (`└──`) neatly nest child sub-options (the fuzzy matching threshold slider and Tree Style Tab auto-expand option) beneath their parent checkboxes without text wrapping.
+4. **Permission Streamlining & Least-Privilege Security**:
+   - Eliminated unused `<all_urls>` host permissions from `manifest.json`.
+   - Stops Firefox from displaying the persistent green attention dot under the toolbar icon on startup and eliminates unnecessary optional permission warnings in `about:addons`.
+   - Requests only strictly required minimal permissions (`tabs`, `tabHide`, `storage`, `find`).
+5. **New Post-Install Onboarding & Permission Flow**:
+   - Elegant first-run welcome screen in `popup.html` presented only upon first opening the popup after installation.
+   - Explains Firefox's native tab-hiding permission requirement and guides the user to select "Keep tabs hidden" before safely invoking the permission doorhanger via a temporary background tab.
+6. **Tree Style Tab (TST) Resilience & Background Reliability**:
+   - Persists TST hierarchy snapshots and active search locks to local storage, ensuring tree structures can be reliably restored even if Firefox suspends the background script during idle periods.
+   - Maintains an active communication port heartbeat between popup and background scripts during search sessions to prevent premature background suspension and race conditions.
 
 ---
 
 ### Detailed Breakdown
 
 #### 1. Virtual Search Results Dashboard Mode
-- **Singleton Dashboard Tab**: Added dedicated search dashboard page (`search-results.html`) consolidating search results across all browser windows into one organized tab.
-- **Window Grouping & Priority**: Multi-window results are grouped by window, with the currently active window pinned first and remaining windows sorted by ID.
+- **Low-Resource & Multi-Window Optimization**: Built specifically for users with multi-window setups who want a unified view of search results, and for low-resource machines by eliminating the performance overhead of hiding and showing potentially many tabs.
+- **Singleton Dashboard Tab**: Dedicated search dashboard page (`search-results.html`) consolidating search results across all browser windows into one organized tab.
+- **Window Grouping & Priority**: Multi-window results are grouped by window, with the currently active window pinned first and remaining windows sorted in ascending window ID order.
 - **Inline Query Refinement**: Live query input and search scope toggles (URLs, titles, page contents, fuzzy threshold) directly inside the dashboard.
-- **Collapsible Window Sections**: Interactive per-window accordion controls with persistent collapsed/expanded state.
+- **Collapsible Window Sections**: Interactive per-window accordion controls with persistent collapsed/expanded state (`collapsedWindows`).
 - **Keyboard Navigation**: Full keyboard traversal (Arrow Up, Arrow Down, Enter) that automatically skips collapsed windows and jumps directly to the highlighted tab.
 - **Window Restoration on Jump**: Selecting a tab automatically un-minimizes/restores and focuses background windows.
 - **Window Badges & Match Summary**: Real-time matching tab count badges on window headers and total matches summary counter.
 - **Configurable Auto-Close**: Option to automatically close the dashboard tab when switching away to another tab or defocusing the window ("Keep dashboard open after selecting a tab").
-- **Live Tab Lifecycle Sync**: Dynamic updates as tabs are created, updated, removed, moved, attached, or detached across windows.
+- **Live Tab Lifecycle Sync**: Dynamic updates as tabs are created, updated, removed, moved, attached, or detached across windows within 1 second.
 - **Authentic Firefox & Photon Branding**: Full-color Firefox logos for `about:blank`/`about:newtab`, dedicated Mozilla Photon SVGs for internal pages (`about:addons`, `about:preferences`, etc.), and clean globe fallbacks.
 - **Pinned Tab Support & Visual Badges**: Matching pinned tabs are included in search results without modifying the tab strip, and are clearly tagged with an accessible "Pinned" badge.
 - **Popup Synchronization**: Popup automatically disables and grays out non-applicable tab-hiding options when Virtual Dashboard mode is active.
 
-#### 2. Post-Install Onboarding & Permission Workflow
+#### 2. Dark Theme Mode & UI Refinements
+- **Quick Theme Toggle**: Sun/Moon SVG button in both popup and dashboard with smooth hover feedback.
+- **Bidirectional Sync**: Real-time cross-view synchronization via `browser.storage.onChanged`.
+- **System Theme Detection**: Defaults to OS/browser `prefers-color-scheme`, with manual override saved to `browser.storage.local`.
+- **High-Contrast Palette**: Theme-aware color variables ensuring compliant contrast across all elements, including window badges, inputs, sliders, and modals.
+- **Dynamic Search Placeholder**: Automatically indicates `"Search Term (Press Enter)"` when manual searching or dashboard mode is active.
+- **Tree-Style Sub-Option Branches**: Clean `└──` visual connectors with centered vertical stems for fuzzy slider and TST auto-expand options.
+
+#### 3. Post-Install Onboarding & Permission Workflow
 - **First-Run Welcome Screen**: Clean intro screen in `popup.html` presented only upon first opening the popup after installation.
 - **Permission Guidance**: Clear explanation of Firefox's native tab-hiding permission requirement with explicit instructions on clicking "Keep tabs hidden".
 - **Non-Disruptive Triggering**: Uses a temporary background tab to safely invoke Firefox's native permission doorhanger without shifting or disturbing the user's active browsing tabs.
 - **Deferred Execution**: Zero intrusive prompts during initial addon installation; triggers only when the user deliberately opens TabSearch for the first time.
 
-#### 3. Permission Streamlining & Least Privilege Security
+#### 4. Permission Streamlining & Least Privilege Security
 - **Eliminated Unused Host Permissions**: Removed `host_permissions: ["<all_urls>"]` from `manifest.json`.
 - **Eliminated Attention Dot & Optional Prompts**: Stops Firefox from displaying the green attention dot under the extension toolbar icon on startup and eliminates optional permission prompts in `about:addons`.
 - **Updated Privacy Guarantees**: Updated `privacy.html` documentation to explicitly clarify zero broad host permissions (no access to cookies, web requests, credentials, or file systems), noting that user-enabled page content search operates strictly locally via Firefox's in-memory `find` API.
-- **Manifest Integrity Tests**: Added automated unit test suite (`tests/manifest.test.js`) verifying strict minimal permissions and version synchronization between `package.json` and `manifest.json`.
+- **Manifest Integrity Tests**: Automated unit test suite (`tests/manifest.test.js`) verifying strict minimal permissions and version synchronization between `package.json` and `manifest.json`.
 
-#### 4. Tree Style Tab (TST) Resilience & Manifest V3 Hardening
-- **Storage-Backed State Rehydration**: Serializes pre-search TST tree snapshots and active search locks to `browser.storage.local`, ensuring tree structures can be restored even if the background page is terminated by Firefox's 30-second MV3 idle timer.
+#### 5. Tree Style Tab (TST) Resilience & Background Reliability
+- **Storage-Backed State Rehydration**: Serializes pre-search TST tree snapshots and active search locks to `browser.storage.local`, ensuring tree structures can be restored even if the background script is suspended by Firefox during idle periods.
 - **Popup-Lifecycle Port Heartbeat**: Maintains an active communication port between popup and background scripts during search sessions to prevent premature background script suspension.
 - **Search Queue & Lock Guarding**: Intercepts rapid keyboard input to process searches sequentially and avoids snapshot overwriting during rapid popup open/close transitions.
 - **Restoration Grace Window**: Added delayed restoration safeguards to handle out-of-order Firefox tab activation events when closing the search popup.
-
-#### 5. Search Defaults & Performance
-- **Content Search Default**: Default search scope set to URL and title only (`searchContents: false`), dramatically speeding up searches across large tab sets while allowing users to opt into deep page-content searches when needed.
-- **Fuzzy Search Threshold Tuning**: Fine-tuned default threshold for Fuse.js token matching to maximize relevant matches while minimizing noise.
 
 #### 6. Documentation & Known Platform Limitations
 - **Firefox Native Tab Groups Limitation**: Documented that Firefox leaves native tab group headers visible on the tab strip during tab-hiding searches even when all child tabs are hidden, as Firefox currently lacks an API to hide group headers (recommending the Virtual Dashboard mode as an alternative).
