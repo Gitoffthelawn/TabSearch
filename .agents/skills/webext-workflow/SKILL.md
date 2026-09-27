@@ -86,7 +86,7 @@ npm run sign -- --api-key <AMO_JWT_ISSUER> --api-secret <AMO_JWT_SECRET>
 
 When publishing a new release:
 
-1. **Sync Version Numbers**: Ensure `version` in `package.json` and `src/manifest.json` match exactly (Semantic Versioning `MAJOR.MINOR.PATCH`).
+1. **Sync Version Numbers**: Ensure `version` in `package.json` and `src/manifest.json` match exactly (Semantic Versioning `MAJOR.MINOR.PATCH` or `MAJOR.MINOR.PATCH.BUILD`, preserving the optional fourth component for pre-release builds).
 2. **Update Documentation**: Review and update both `README.md` (version & changelog) and `AMO/AMO_DESCRIPTION.md` (store description & release notes).
 3. **Run Unit Tests**: Execute `npm test` and verify zero failures.
 4. **Run Linter**: Execute `npx web-ext lint` and verify zero errors.
