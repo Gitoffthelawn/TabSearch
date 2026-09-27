@@ -10,12 +10,22 @@ const POPUP_SOURCE = fs.readFileSync(
   'utf8'
 );
 
-function loadPopupTheme() {
+/**
+ * Loads popup.js in an isolated VM context with mocked DOM and WebExtension APIs for theme testing.
+ *
+ * @param {Object} [initialStorage={}] - Optional initial storage contents for browser.storage.local.
+ * @returns {Object} Test harness containing theme functions, DOM attributes, buttons, and event dispatchers.
+ */
+function loadPopupTheme(initialStorage = {}) {
   const elements = new Map();
   const docAttrs = {};
   const btnAttrs = {};
   const btnChildren = [];
   const storageSetCalls = [];
+  const storedData = { ...initialStorage };
+  const windowListeners = new Map();
+  const documentListeners = new Map();
+  let storageListener = null;
 
   const mockButton = {
     title: '',
@@ -25,17 +35,34 @@ function loadPopupTheme() {
       const idx = btnChildren.indexOf(node);
       if (idx !== -1) btnChildren.splice(idx, 1);
     },
-    appendChild(node) { btnChildren.push(node); }
+    appendChild(node) { btnChildren.push(node); },
+    addEventListener() {},
+    removeEventListener() {}
   };
   elements.set('theme-toggle-btn', mockButton);
 
   const element = (id) => {
     if (!elements.has(id)) {
       elements.set(id, {
+        id,
         addEventListener() {},
-        setAttribute() {},
+        removeEventListener() {},
+        setAttribute(k, v) { this[k] = v; },
+        closest() { return null; },
+        classList: {
+          add() {},
+          remove() {}
+        },
         checked: false,
-        value: ''
+        value: '0.35',
+        hidden: false,
+        disabled: false,
+        textContent: '',
+        placeholder: '',
+        tabIndex: 0,
+        offsetParent: {},
+        focus() {},
+        select() {}
       });
     }
     return elements.get(id);
@@ -49,22 +76,41 @@ function loadPopupTheme() {
       },
       storage: {
         local: {
-          get() { return Promise.resolve({}); },
+          get(keys) {
+            const result = {};
+            const keyList = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : Object.keys(storedData));
+            for (const k of keyList) {
+              if (storedData[k] !== undefined) {
+                result[k] = storedData[k];
+              }
+            }
+            return Promise.resolve(result);
+          },
           set(data) {
             storageSetCalls.push(data);
+            Object.assign(storedData, data);
             return Promise.resolve();
           }
         },
-        onChanged: { addListener() {} }
+        onChanged: {
+          addListener(listener) {
+            storageListener = listener;
+          }
+        }
       }
     },
     console: { error() {}, log() {}, warn() {} },
     document: {
-      addEventListener() {},
+      addEventListener(event, handler) {
+        if (!documentListeners.has(event)) documentListeners.set(event, []);
+        documentListeners.get(event).push(handler);
+      },
       documentElement: {
         setAttribute(k, v) { docAttrs[k] = v; }
       },
       getElementById: element,
+      body: { appendChild() {} },
+      activeElement: null,
       createElementNS(ns, tag) {
         const el = {
           ns,
@@ -89,7 +135,10 @@ function loadPopupTheme() {
     setInterval() { return 1; },
     clearInterval() {},
     window: {
-      addEventListener() {},
+      addEventListener(event, handler) {
+        if (!windowListeners.has(event)) windowListeners.set(event, []);
+        windowListeners.get(event).push(handler);
+      },
       close() {},
       matchMedia() { return { matches: false }; }
     }
@@ -101,6 +150,17 @@ function loadPopupTheme() {
     getEffectiveTheme: vm.runInContext('getEffectiveTheme', context),
     applyTheme: vm.runInContext('applyTheme', context),
     toggleTheme: vm.runInContext('toggleTheme', context),
+    getStorageListener: () => storageListener,
+    dispatchDomContentLoaded: async () => {
+      const handlers = [
+        ...(windowListeners.get('DOMContentLoaded') || []),
+        ...(documentListeners.get('DOMContentLoaded') || [])
+      ];
+      for (const h of handlers) {
+        h();
+      }
+      await new Promise(resolve => setTimeout(resolve, 0));
+    },
     docAttrs,
     btnAttrs,
     btnChildren,
@@ -252,69 +312,43 @@ test('applyTheme - correctly populates sun icon nodes for dark theme and moon fo
   assert.equal(moonSvg.children[0].attributes.d, 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z');
 });
 
-test('storage.onChanged - responds to theme changes and updates DOM state in popup and dashboard', () => {
-  let storageListener = null;
-  const originalBrowser = global.browser;
-  const originalDocument = global.document;
+test('storage.onChanged - responds to theme changes and updates DOM state in popup', async () => {
+  const popup = loadPopupTheme();
 
-  global.browser = {
-    storage: {
-      onChanged: {
-        addListener(listener) {
-          storageListener = listener;
-        }
-      }
+  // Before DOMContentLoaded, storage listener has not yet been registered
+  assert.equal(popup.getStorageListener(), null);
+
+  // Trigger DOMContentLoaded to load options and register the storage.onChanged listener
+  await popup.dispatchDomContentLoaded();
+
+  const storageListener = popup.getStorageListener();
+  assert.equal(typeof storageListener, 'function', 'storage.onChanged listener must be registered on DOMContentLoaded');
+
+  // Exercise storage.onChanged with dark theme
+  storageListener({
+    theme: {
+      oldValue: 'light',
+      newValue: 'dark'
     }
-  };
+  });
 
-  const docAttrs = {};
-  const btnAttrs = {};
-  const btnChildren = [];
-  const mockButton = {
-    title: '',
-    setAttribute(k, v) { btnAttrs[k] = v; },
-    get firstChild() { return btnChildren[0] || null; },
-    removeChild(node) {
-      const idx = btnChildren.indexOf(node);
-      if (idx !== -1) btnChildren.splice(idx, 1);
-    },
-    appendChild(node) { btnChildren.push(node); }
-  };
+  assert.equal(popup.docAttrs['data-theme'], 'dark');
+  assert.equal(popup.mockButton.title, 'Switch to light theme');
+  assert.equal(popup.btnAttrs['aria-label'], 'Switch to light theme');
+  assert.equal(popup.btnChildren.length, 1);
+  assert.equal(popup.btnChildren[0].className, 'theme-icon-sun');
 
-  global.document = {
-    documentElement: {
-      setAttribute(k, v) { docAttrs[k] = v; }
-    },
-    getElementById(id) {
-      if (id === 'theme-toggle-btn') return mockButton;
-      return null;
-    },
-    createElementNS(ns, tag) {
-      const el = {
-        ns,
-        tag,
-        attributes: {},
-        children: [],
-        classList: {
-          add(cls) { el.className = cls; }
-        },
-        setAttribute(k, v) { el.attributes[k] = v; },
-        appendChild(child) { el.children.push(child); }
-      };
-      return el;
+  // Exercise storage.onChanged with light theme
+  storageListener({
+    theme: {
+      oldValue: 'dark',
+      newValue: 'light'
     }
-  };
+  });
 
-  // Simulate theme change event from storage
-  dashboardTheme.applyTheme('light', mockButton);
-  assert.equal(docAttrs['data-theme'], 'light');
-  assert.equal(mockButton.title, 'Switch to dark theme');
-
-  // Dashboard applies updated theme on receiving event
-  dashboardTheme.applyTheme(dashboardTheme.getEffectiveTheme('dark'), mockButton);
-  assert.equal(docAttrs['data-theme'], 'dark');
-  assert.equal(mockButton.title, 'Switch to light theme');
-
-  global.browser = originalBrowser;
-  global.document = originalDocument;
+  assert.equal(popup.docAttrs['data-theme'], 'light');
+  assert.equal(popup.mockButton.title, 'Switch to dark theme');
+  assert.equal(popup.btnAttrs['aria-label'], 'Switch to dark theme');
+  assert.equal(popup.btnChildren.length, 1);
+  assert.equal(popup.btnChildren[0].className, 'theme-icon-moon');
 });
