@@ -128,7 +128,7 @@
 
 **Purpose**: Automated testing, documentation review, versioning & release hygiene per Constitution v1.3.0
 
-- [x] T027 Bump version in `package.json` and `src/manifest.json` from `0.7.1` to `0.8.0` (both files MUST stay in sync, Semantic Versioning)
+- [x] T027 Bump version in `package.json` and `src/manifest.json` to the applicable release target (both files MUST stay in sync, Semantic Versioning; pre-release builds may use an optional fourth version component)
 - [x] T028 Review and update `README.md` (changelog & documentation) and `AMO/AMO_DESCRIPTION.md` (store description)
 - [x] T029 Implement and maintain automated unit test suites in `tests/` covering dashboard filtering, window grouping/sorting, and background routing (`tests/dashboard-behavior.test.js`, `tests/background-dashboard.test.js`, `tests/window-grouping.test.js`, `tests/search.test.js`)
 - [x] T030 Verify Docstring & JSDoc Coverage Gate (≥ 80% coverage with `@param` and `@returns`) across all touched functions per Constitution v1.3.0 Principle V
