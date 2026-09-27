@@ -29,7 +29,40 @@ This guide details the scenarios to verify the Virtual Search Results Dashboard 
     * The browser focuses the target tab in its parent window.
     * The dashboard tab closes automatically (default behavior).
     * **SC-002**: Activation completes in **under 250ms**.
-      *Measurement*: Check **Keep dashboard open** first (so the console stays alive), then in the dashboard's DevTools console run `const t0 = performance.now(); document.querySelector('.window-section:not(.collapsed) .tab-result-item').click(); browser.tabs.onActivated.addListener((d) => console.log('SC-002 ms:', performance.now() - t0, 'tab', d.tabId));`. The logged delta must be < 250.
+      *Measurement*: Check **Keep dashboard open** first (so the console stays alive), then in the dashboard's DevTools console register the activation and focus observer before clicking the tab result:
+      ```javascript
+      const el = document.querySelector('.window-section:not(.collapsed) .tab-result-item');
+      const tabId = Number(el.dataset.tabId);
+      const winId = Number(el.closest('.window-section').dataset.windowId);
+      let tabActive = false;
+      let t0;
+      const check = async () => {
+        if (!tabActive) {
+          const tab = await browser.tabs.get(tabId);
+          if (tab.active) tabActive = true;
+        }
+        if (!tabActive) return;
+        const win = await browser.windows.get(winId);
+        if (win.focused && win.state !== 'minimized') {
+          cleanup();
+          console.log('SC-002 ms:', performance.now() - t0, 'tab', tabId, 'win', winId);
+        } else {
+          setTimeout(check, 10);
+        }
+      };
+      const onTab = (d) => { if (d.tabId === tabId) { tabActive = true; check(); } };
+      const onWin = (wId) => { if (wId === winId) check(); };
+      browser.tabs.onActivated.addListener(onTab);
+      browser.windows.onFocusChanged.addListener(onWin);
+      const cleanup = () => {
+        browser.tabs.onActivated.removeListener(onTab);
+        browser.windows.onFocusChanged.removeListener(onWin);
+      };
+      setTimeout(cleanup, 3000);
+      t0 = performance.now();
+      el.click();
+      ```
+      Measure completion only after both the target window is restored and focused and the tab is activated; do not treat the tab activation event alone as completion. The logged delta must be < 250ms.
  5. Minimize the parent window of a matching tab, then select that tab's result from the dashboard.
     **Expected Outcome**: The minimized window is restored and focused, and the target tab becomes active.
 
