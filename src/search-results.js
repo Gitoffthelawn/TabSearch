@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
       await performSearch();
-    }, searchContents ? 200 : 100);
+    }, searchContents ? 200 : 25);
   });
 
   // Focus the search input initially
