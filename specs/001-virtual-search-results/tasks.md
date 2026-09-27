@@ -4,7 +4,7 @@
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: Unit tests are MANDATORY per Constitution v1.3.0 Principle V (mandating automated unit tests and ≥ 80% JSDoc docstring coverage). Core logic and helper utilities must have automated test cases run via `npm test`.
+**Tests**: Unit tests are MANDATORY per Constitution v1.4.0 Principle V (mandating automated unit tests and ≥ 80% JSDoc docstring coverage). Core logic and helper utilities must have automated test cases run via `npm test`.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -126,12 +126,12 @@
 
 ## Phase 9: Release (Principles V & VII)
 
-**Purpose**: Automated testing, documentation review, versioning & release hygiene per Constitution v1.3.0
+**Purpose**: Automated testing, documentation review, versioning & release hygiene per Constitution v1.4.0
 
 - [x] T027 Bump version in `package.json` and `src/manifest.json` to the applicable release target (both files MUST stay in sync, Semantic Versioning; pre-release builds may use an optional fourth version component)
 - [x] T028 Review and update `README.md` (changelog & documentation) and `AMO/AMO_DESCRIPTION.md` (store description)
 - [x] T029 Implement and maintain automated unit test suites in `tests/` covering dashboard filtering, window grouping/sorting, and background routing (`tests/dashboard-behavior.test.js`, `tests/background-dashboard.test.js`, `tests/window-grouping.test.js`, `tests/search.test.js`)
-- [x] T030 Verify Docstring & JSDoc Coverage Gate (≥ 80% coverage with `@param` and `@returns`) across all touched functions per Constitution v1.3.0 Principle V
+- [x] T030 Verify Docstring & JSDoc Coverage Gate (≥ 80% coverage with `@param` and `@returns`) across all touched functions per Constitution v1.4.0 Principle V
 - [x] T031 Execute automated unit test suite (`npm test`) and linter (`npx web-ext lint`) with 0 errors
 - [x] T032 Run `npm run build` and verify the `.xpi` artifact is produced in `web-ext-artifacts/`
 

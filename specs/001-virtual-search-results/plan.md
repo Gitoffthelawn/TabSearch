@@ -40,7 +40,7 @@ This feature implements a "Virtual Search Results Dashboard" mode as an alternat
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Evaluated against the ratified constitution (v1.3.0):
+Evaluated against the ratified constitution (v1.4.0):
 
 - **I. Simplicity** — ✅ Pass. Vanilla JS/HTML/CSS; zero npm dependencies.
 - **II. Firefox-Only Target** — ✅ Pass. Uses the `browser` API surface; Firefox (Manifest V3) is the sole target.
@@ -67,7 +67,7 @@ specs/001-virtual-search-results/
 └── tasks.md             # Actionable checklists (created by next step)
 ```
 
-### Source Code (repository root)
+### Source Code & Tests (repository root)
 
 ```text
 src/
@@ -77,6 +77,11 @@ src/
 ├── popup.js             # [MODIFY] Add setting toggle logic, load/save virtualDashboard, handle search submission
 ├── search-results.html  # [NEW] Dashboard page UI
 └── search-results.js    # [NEW] Dashboard search, display, real-time sync, and keyboard navigation
+tests/
+├── background-dashboard.test.js # [NEW/MODIFY] Test singleton routing and tab/window fronting
+├── dashboard-behavior.test.js   # [NEW/MODIFY] Test real-time synchronization and UI interactions
+├── search.test.js               # [MODIFY] Test search options and filtering parity
+└── window-grouping.test.js      # [NEW/MODIFY] Test tab grouping and window ordering
 ```
 
 **Structure Decision**: Single extension project structure mapping modifications to the `src/` directory.

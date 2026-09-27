@@ -101,7 +101,7 @@ A user with many matching windows wants to collapse sections in the dashboard to
 - **FR-003**: When a search is performed with the virtual dashboard mode enabled and no dashboard tab exists yet, the background script MUST open a local extension page (`search-results.html`) in a new tab in the active window.
 - **FR-004**: The background script MUST enforce a singleton pattern for the dashboard tab. If the dashboard is already open in a different window, it MUST update the search query, activate that tab, and bring its parent window to the front.
 - **FR-005**: The dashboard page MUST display matching tabs grouped by their parent window, listing the window ID and count of matching tabs. The sections MUST be ordered with the active window first, followed by remaining windows in ascending window ID order.
-- **FR-006**: The dashboard page MUST allow users to collapse and expand individual window sections by clicking on the window headers.
+- **FR-006**: The dashboard page MUST allow users to collapse and expand individual window sections by clicking on the window headers, persisting the collapsed window IDs in local storage (`collapsedWindows`).
 - **FR-007**: Clicking a search result in the dashboard MUST focus its parent window (restoring the window if minimized) and activate the target tab.
 - **FR-008**: The dashboard page MUST include a checkbox to "Keep dashboard open after selecting a tab" (persisted in local storage under `keepDashboardOpen`), which defaults to unchecked; selecting a result MUST close the dashboard tab unless this checkbox is checked.
 - **FR-009**: The dashboard page MUST include a search query input field that filters and updates the listed matching tabs in real-time as the user types, using the same search options that the popup provides (such as Search URLs, Search tab titles, Search contents of loaded tabs, and Fuzzy matching, loaded from storage). When the query is empty, the dashboard MUST list all tabs grouped by window (no filtering).
@@ -113,7 +113,7 @@ A user with many matching windows wants to collapse sections in the dashboard to
 ### Key Entities *(include if feature involves data)*
 
 - **Search Mode Option**: Represents the user preference for search mode (`virtualDashboard` boolean option). Persisted in local browser storage (`browser.storage.local`).
-- **Dashboard State**: Active dashboard tab configuration including current search query, keep-open preference, collapsed window IDs, and the real-time list of matching tab references.
+- **Dashboard State**: Active dashboard tab configuration including current search query, keep-open preference (`keepDashboardOpen`), collapsed window IDs (`collapsedWindows`), and the real-time list of matching tab references.
 
 ## Success Criteria *(mandatory)*
 
