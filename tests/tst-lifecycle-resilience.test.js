@@ -1,5 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 const {
   addFlattenedState,
   removeFlattenedState,
@@ -7,6 +10,11 @@ const {
   resetSearchTrackingState,
   STORAGE_KEY_TST_SEARCH_STATE
 } = require('../src/background.js');
+
+const BACKGROUND_SOURCE = fs.readFileSync(
+  path.join(__dirname, '..', 'src', 'background.js'),
+  'utf8'
+);
 
 test('addFlattenedState - normalizes array of Tab objects to numeric tab IDs', async () => {
   const sentMessages = [];
@@ -198,7 +206,7 @@ test('resetSearchTrackingState - cleans up persisted search state from storage',
 
 test('popup-lifecycle port handles heartbeat and replies with heartbeat-ack', () => {
   let connectListener = null;
-  global.browser = {
+  const mockBrowser = {
     runtime: {
       onConnect: {
         addListener: (fn) => {
@@ -208,24 +216,20 @@ test('popup-lifecycle port handles heartbeat and replies with heartbeat-ack', ()
     }
   };
 
-  // Re-register listener in test
-  if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.onConnect) {
-    browser.runtime.onConnect.addListener((port) => {
-      if (port.name === 'popup-lifecycle') {
-        if (port.onMessage && typeof port.onMessage.addListener === 'function') {
-          port.onMessage.addListener((msg) => {
-            if (msg && msg.type === 'heartbeat') {
-              try {
-                if (typeof port.postMessage === 'function') {
-                  port.postMessage({ type: 'heartbeat-ack' });
-                }
-              } catch {}
-            }
-          });
-        }
-      }
-    });
-  }
+  const context = vm.createContext({
+    browser: mockBrowser,
+    clearInterval,
+    clearTimeout,
+    console: { error() {}, log() {}, warn() {} },
+    encodeURIComponent,
+    module: { exports: {} },
+    setInterval,
+    setTimeout
+  });
+
+  vm.runInContext(BACKGROUND_SOURCE, context, { filename: 'background.js' });
+
+  assert.ok(typeof connectListener === 'function', 'Must register onConnect listener in background.js');
 
   let messageListener = null;
   const postedMessages = [];
@@ -245,6 +249,6 @@ test('popup-lifecycle port handles heartbeat and replies with heartbeat-ack', ()
   assert.ok(messageListener, 'Must register onMessage listener on popup-lifecycle port');
 
   messageListener({ type: 'heartbeat' });
-  assert.deepEqual(postedMessages, [{ type: 'heartbeat-ack' }]);
+  assert.deepEqual(JSON.parse(JSON.stringify(postedMessages)), [{ type: 'heartbeat-ack' }]);
 });
 
