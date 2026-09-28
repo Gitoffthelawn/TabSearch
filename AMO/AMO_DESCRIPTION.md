@@ -32,7 +32,7 @@ Whether you have dozens or hundreds of tabs across multiple windows, Tab Search 
 
 **Privacy and permissions (plain language)**
 - Runs 100% locally in your browser; no data is ever collected or sent to external servers
-- Strictly minimal permissions: requests only essential tab and storage APIs; requires zero broad host permissions (`<all_urls>`) and has no access to browsing history, cookies, or credentials
+- Strictly minimal permissions: requests only essential tab and storage APIs; requires zero broad host permissions (no "all URLs" access) and has no access to browsing history, cookies, or credentials
 - Uses standard Firefox tab APIs to display or temporarily hide tabs during search
 - Hidden tabs are temporary and always restored after search
 - Firefox prompts for permission the first time tab hiding is activated; a guided welcome screen makes this setup effortless
