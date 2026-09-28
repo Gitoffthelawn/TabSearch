@@ -136,7 +136,7 @@
 ## Changelog
 
 <details open>
-<summary><strong>v0.8.1 (2026-09-27) - Virtual Search Results Dashboard, Dark Theme Mode, Permission Streamlining & Background Script Reliability</strong></summary>
+<summary><strong>v0.8.2 (2026-09-27) - Virtual Search Results Dashboard, Dark Theme Mode, Permission Streamlining & Background Script Reliability</strong></summary>
 
 ### Major Highlights
 
